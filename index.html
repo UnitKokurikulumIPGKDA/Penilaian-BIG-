@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Borang Penilaian Akhir - Sistem BIG</title>
+    <title>Sistem Penilaian Ahli Kumpulan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Krona+One&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0 10px 80px 10px; background-color: #f0f2f5; }
         h1, h2, h3, h4 { text-align: center; color: #1c1e21; }
-        h1 { font-size: 1.5em; }
+        h1 { 
+            font-family: 'Krona One', sans-serif; 
+            font-size: 1.8em; 
+            margin: 0; 
+            flex-shrink: 0;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
         .section { margin: 15px 0; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9em; vertical-align: middle; }
@@ -27,10 +37,8 @@
         input[type="file"], input[type="text"], input[type="password"], select { padding: 12px; border: 1px solid #ddd; border-radius: 6px; width: 100%; margin-bottom: 10px; font-size: 16px; box-sizing: border-box; }
         .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; }
         #submissionStatus { padding: 15px; background-color: #ffc107; border: 1px solid #e0a800; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 20px; }
-        .header-container { display: flex; align-items: center; justify-content: center; margin: 20px 0; }
-        .logo { height: 60px; margin-right: 15px; }
-        .title-wrapper { flex-grow: 1; }
-        #adminReportTable th { font-size: 0.8em; }
+        .header-container { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        .logo { height: 90px; }
         footer { position: fixed; left: 0; bottom: 0; width: 100%; background-color: #343a40; color: white; text-align: center; padding: 10px 0; font-size: 0.9em; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         #radarChartSection { display: none; margin-top: 30px; }
@@ -42,9 +50,8 @@
 <body>
     <div class="header-container">
         <img src="https://i.imgur.com/K4Gy3WN.png" alt="Logo IPG" class="logo">
-        <div class="title-wrapper">
-            <h1>Sistem Penilaian Ahli Kumpulan</h1>
-        </div>
+        <h1>SISTEM PENILAIAN<br>AHLI KUMPULAN</h1>
+        <img src="https://i.imgur.com/HfCmzEY.png" alt="Logo BIG" class="logo">
     </div>
     
     <div class="section">
@@ -106,7 +113,7 @@
     </div>
 
     <footer>
-        @Haniff Faizal UKOIPGKDA 2025
+        @Haniff Faizal Unit Kokurikulum IPG Kampus Darulaman 2025
     </footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -219,12 +226,12 @@
                         label: `Purata Markah untuk ${studentName}`,
                         data: data,
                         fill: true,
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgb(54, 162, 235)',
-                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        pointBackgroundColor: 'rgba(0, 123, 255, 1)',
                         pointBorderColor: '#fff',
                         pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(54, 162, 235)'
+                        pointHoverBorderColor: 'rgba(0, 123, 255, 1)'
                     }]
                 },
                 options: {
@@ -234,11 +241,6 @@
             });
         }
         
-        // --- All other functions remain unchanged ---
-    </script>
-    
-    <!-- Full JS for other functions -->
-    <script>
         async function loadMembers() {
             const groupNo = document.getElementById('groupNo').value.trim();
             const icNo = document.getElementById('icNo').value.trim().replace(/-/g, '');
@@ -259,7 +261,12 @@
                 const sortedAllMembers = Array.from(allMemberNames).sort();
                 
                 const memberListSection = document.getElementById('memberList');
-                memberListSection.innerHTML = `<h2 id="assessmentHeader">Borang Penilaian Kumpulan ${groupNo}</h2><div id="submissionStatus" style="display:none;"></div><h3>Senarai Ahli Kumpulan Anda</h3><ul id="members">${sortedAllMembers.map(m => `<li>${m}</li>`).join('')}</ul><form id="assessmentForm"></form>`;
+                memberListSection.innerHTML = `
+                    <h2 id="assessmentHeader">Borang Penilaian Kumpulan ${groupNo}</h2>
+                    <div id="submissionStatus" style="display:none;"></div>
+                    <h3>Senarai Ahli Kumpulan Anda</h3>
+                    <ul id="members">${sortedAllMembers.map(m => `<li>${m}</li>`).join('')}</ul>
+                    <form id="assessmentForm"></form>`;
                 currentMembers = sortedAllMembers.filter(member => member !== currentUserData.nama);
                 const form = document.getElementById('assessmentForm');
                 const skills = [
@@ -268,7 +275,7 @@
                 ];
                  const rubricDetails = {
                     komunikasi: '<ul><li><strong>1 (Lemah):</strong> Tidak berkomunikasi atau sukar difahami.</li><li><strong>2 (Sederhana):</strong> Menyampaikan idea asas tetapi kurang jelas.</li><li><strong>3 (Kepuasan):</strong> Berkomunikasi dengan jelas & mengambil bahagian.</li><li><strong>4 (Cemerlang):</strong> Berkomunikasi dengan sangat jelas, efektif, & meyakinkan.</li><li><strong>5 (Amat Cemerlang):</strong> Komunikasi luar biasa, mendengar aktif & memimpin perbincangan.</li></ul>',
-                    interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepuasan):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4-Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>',
+                    interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepuasan):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4 (Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>',
                     praktikal: '<ul><li><strong>1 (Lemah):</strong> Tidak melaksanakan tugas atau hasil sangat lemah.</li><li><strong>2 (Sederhana):</strong> Melaksanakan tugas asas dengan banyak bimbingan.</li><li><strong>3 (Kepuasan):</strong> Melaksanakan tugas dengan baik mengikut arahan.</li><li><strong>4 (Cemerlang):</strong> Melaksanakan tugas dengan cekap, teliti & pengawasan minimum.</li><li><strong>5 (Amat Cemerlang):</strong> Melaksanakan tugas dengan inovatif & kemahiran teknikal tinggi.</li></ul>',
                     autonomi: '<ul><li><strong>1 (Lemah):</strong> Sangat bergantung & mengelak tanggungjawab.</li><li><strong>2 (Sederhana):</strong> Sedikit autonomi & perlu peringatan.</li><li><strong>3 (Kepuasan):</strong> Bertanggungjawab & selesaikan tugas ikut tempoh.</li><li><strong>4 (Cemerlang):</strong> Autonomi tinggi, proaktif & boleh dipercayai.</li><li><strong>5 (Amat Cemerlang):</strong> Kepimpinan autonomi, ambil inisiatif & bertanggungjawab sepenuhnya.</li></ul>',
                     kepimpinan: '<ul><li><strong>1 (Lemah):</strong> Tidak menunjukkan ciri kepimpinan & pasif.</li><li><strong>2 (Sederhana):</strong> Kepimpinan minimum, hanya apabila diminta.</li><li><strong>3 (Kepuasan):</strong> Boleh memimpin tugas kecil & beri arahan jelas.</li><li><strong>4 (Cemerlang):</strong> Memimpin dengan efektif, agih tugas adil & beri motivasi.</li><li><strong>5 (Amat Cemerlang):</strong> Sumber inspirasi, memimpin dengan teladan & menyelesaikan konflik.</li></ul>'
@@ -342,6 +349,7 @@
                 batch.commit().then(() => {
                     alert(`${json.length} data pelajar telah berjaya disimpan!`);
                     fileInput.value = '';
+                    populateGroupDropdown();
                 }).catch(err => alert("Gagal menyimpan data.")).finally(() => {
                     processBtn.disabled = false; processBtn.textContent = 'Muat Naik Senarai Pelajar';
                 });
