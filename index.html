@@ -84,7 +84,7 @@
     <div id="memberList" class="section">
         <h2 id="assessmentHeader">Borang Penilaian Kumpulan</h2>
         <div id="submissionStatus" style="display:none;"></div>
-        <h3>Senarai Ahli</h3>
+        <h3>Senarai Ahli Kumpulan Anda</h3>
         <ul id="members"></ul>
         
         <form id="assessmentForm">
@@ -234,12 +234,14 @@
             loadBtn.textContent = 'Mengesahkan...';
 
             try {
-                // Security Check
+                // Security Check & Get current user's name
                 const securityCheckQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).where('kp', '==', icNo).get();
                 if (securityCheckQuery.empty) {
                     alert('Pengesahan gagal. No. KP anda tidak ditemui dalam kumpulan ini atau maklumat salah.');
                     throw new Error("Security check failed");
                 }
+                const currentUserName = securityCheckQuery.docs[0].data().nama;
+
 
                 // Check for Previous Submission
                 loadBtn.textContent = 'Menyemak Rekod...';
@@ -248,20 +250,24 @@
 
                 // Load all group members
                 const membersQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).get();
-                let memberNames = new Set();
-                membersQuery.forEach(doc => memberNames.add(doc.data().nama));
-                currentMembers = Array.from(memberNames).sort();
+                let allMemberNames = new Set();
+                membersQuery.forEach(doc => allMemberNames.add(doc.data().nama));
+                const sortedAllMembers = Array.from(allMemberNames).sort();
 
-                // Display UI
+                // Display ALL members in the UL list for reference
                 document.getElementById('assessmentHeader').textContent = `Borang Penilaian Kumpulan ${groupNo}`;
                 const membersListElem = document.getElementById('members');
                 membersListElem.innerHTML = '';
-                currentMembers.forEach(member => membersListElem.innerHTML += `<li>${member}</li>`);
+                sortedAllMembers.forEach(member => membersListElem.innerHTML += `<li>${member}</li>`);
+
+                // Exclude the current user from the list to be evaluated
+                currentMembers = sortedAllMembers.filter(member => member !== currentUserName);
 
                 const tables = ['table-komunikasi', 'table-interpersonal', 'table-praktikal', 'table-autonomi', 'table-kepimpinan'];
                 tables.forEach(tableId => {
                     const tbody = document.getElementById(tableId);
                     tbody.innerHTML = '';
+                    // Use the filtered list (currentMembers) to populate the tables
                     currentMembers.forEach(member => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `<td>${member}</td><td><select><option value="">Pilih</option>${[1,2,3,4,5].map(v => `<option value="${v}">${v}</option>`).join('')}</select></td>`;
