@@ -95,8 +95,8 @@
             <p>Klik untuk memuat turun semua data mentah penilaian yang telah disimpan.</p>
             <button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button>
             <hr>
-            <p>Sistem akan membandingkan senarai penuh pelajar dengan senarai pelajar yang telah dinilai.</p>
-            <button id="checkBtn" onclick="checkUnassessedStudents()">Semak Pelajar Belum Dinilai</button>
+            <p>Sistem akan menyemak senarai pelajar yang masih belum menghantar borang penilaian.</p>
+            <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed()">Semak Pelajar Belum Membuat Penilaian</button>
             <div id="unassessedResult" style="margin-top: 15px;"></div>
         </div>
     </div>
@@ -126,7 +126,6 @@
             const password = prompt("Sila masukkan kata laluan Admin:");
             if (password === ADMIN_PASSWORD) {
                 document.getElementById('adminSection').style.display = 'block';
-                // Populate group dropdown
                 try {
                     const snapshot = await db.collection('pelajar').get();
                     const groups = new Set();
@@ -144,83 +143,50 @@
 
         async function generateAdminReport() {
             const groupNo = document.getElementById('adminGroupSelect').value;
-            if (!groupNo) {
-                alert('Sila pilih kumpulan.');
-                return;
-            }
+            if (!groupNo) { alert('Sila pilih kumpulan.'); return; }
             const reportBtn = document.getElementById('generateReportBtn');
             const container = document.getElementById('adminReportContainer');
             reportBtn.disabled = true;
             reportBtn.textContent = 'Menjana...';
             container.innerHTML = 'Memuatkan data...';
-
             try {
                 const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get();
                 if (assessmentsSnapshot.empty) {
                     container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>';
                     return;
                 }
-
-                // Aggregate scores
                 const studentData = {};
                 assessmentsSnapshot.forEach(doc => {
                     const data = doc.data();
                     const studentName = data.nama_dinilai;
                     if (!studentData[studentName]) {
-                        studentData[studentName] = {
-                            komunikasi: [], interpersonal: [], praktikal: [], autonomi: [], kepimpinan: []
-                        };
+                        studentData[studentName] = { komunikasi: [], interpersonal: [], praktikal: [], autonomi: [], kepimpinan: [] };
                     }
                     Object.keys(data.skor).forEach(key => {
                         studentData[studentName][key].push(data.skor[key]);
                     });
                 });
-
-                // Calculate averages and build table
-                let tableHTML = `<table id="adminReportTable"><thead><tr>
-                    <th>Nama Pelajar</th>
-                    <th>Purata Komunikasi</th>
-                    <th>Purata Interpersonal</th>
-                    <th>Purata Praktikal</th>
-                    <th>Purata Autonomi</th>
-                    <th>Purata Kepimpinan</th>
-                    <th>Jumlah Markah (%)</th>
-                    <th>Tahap</th>
-                </tr></thead><tbody>`;
-
+                let tableHTML = `<table id="adminReportTable"><thead><tr><th>Nama Pelajar</th><th>Purata Komunikasi</th><th>Purata Interpersonal</th><th>Purata Praktikal</th><th>Purata Autonomi</th><th>Purata Kepimpinan</th><th>Jumlah Markah (%)</th><th>Tahap</th></tr></thead><tbody>`;
                 for (const name in studentData) {
                     const avgScores = {};
                     let totalScore = 0;
                     const weights = {komunikasi: 0.30, interpersonal: 0.30, praktikal: 0.15, autonomi: 0.15, kepimpinan: 0.10};
-                    
                     for (const skill in studentData[name]) {
                         const scores = studentData[name][skill];
                         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
                         avgScores[skill] = avg.toFixed(2);
                         totalScore += (avg / 5) * (weights[skill] * 100);
                     }
-                    
                     let level = '', color = '';
                     if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } 
                     else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } 
                     else if (totalScore < 65) { level = 'Kepuasan'; color = colors[2]; } 
                     else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } 
                     else { level = 'Amat Cemerlang'; color = colors[4]; }
-
-                    tableHTML += `<tr>
-                        <td>${name}</td>
-                        <td>${avgScores.komunikasi}</td>
-                        <td>${avgScores.interpersonal}</td>
-                        <td>${avgScores.praktikal}</td>
-                        <td>${avgScores.autonomi}</td>
-                        <td>${avgScores.kepimpinan}</td>
-                        <td><strong>${totalScore.toFixed(2)}%</strong></td>
-                        <td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td>
-                    </tr>`;
+                    tableHTML += `<tr><td>${name}</td><td>${avgScores.komunikasi}</td><td>${avgScores.interpersonal}</td><td>${avgScores.praktikal}</td><td>${avgScores.autonomi}</td><td>${avgScores.kepimpinan}</td><td><strong>${totalScore.toFixed(2)}%</strong></td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td></tr>`;
                 }
                 tableHTML += '</tbody></table>';
                 container.innerHTML = tableHTML;
-
             } catch (error) {
                 console.error("Error generating report: ", error);
                 container.innerHTML = '<p>Gagal menjana laporan. Sila cuba lagi.</p>';
@@ -230,7 +196,6 @@
             }
         }
 
-        // --- ALL OTHER FUNCTIONS (loadMembers, submit, etc.) REMAIN THE SAME ---
         async function loadMembers() {
             const groupNo = document.getElementById('groupNo').value.trim();
             const icNo = document.getElementById('icNo').value.trim().replace(/-/g, '');
@@ -243,23 +208,18 @@
                 const securityCheckQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).where('kp', '==', icNo).get();
                 if (securityCheckQuery.empty) { alert('Pengesahan gagal. No. KP anda tidak ditemui dalam kumpulan ini.'); throw new Error("Security check failed"); }
                 const currentUserName = securityCheckQuery.docs[0].data().nama;
-                
                 loadBtn.textContent = 'Menyemak Rekod...';
                 const submissionCheckQuery = await db.collection('penilaian').where('kumpulan', '==', groupNo).where('penilai_kp', '==', icNo).get();
                 const hasSubmitted = !submissionCheckQuery.empty;
-                
                 const membersQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).get();
                 let allMemberNames = new Set();
                 membersQuery.forEach(doc => allMemberNames.add(doc.data().nama));
                 const sortedAllMembers = Array.from(allMemberNames).sort();
-                
                 document.getElementById('assessmentHeader').textContent = `Borang Penilaian Kumpulan ${groupNo}`;
                 const membersListElem = document.getElementById('members');
                 membersListElem.innerHTML = '';
                 sortedAllMembers.forEach(member => membersListElem.innerHTML += `<li>${member}</li>`);
-                
                 currentMembers = sortedAllMembers.filter(member => member !== currentUserName);
-                
                 const tables = ['table-komunikasi', 'table-interpersonal', 'table-praktikal', 'table-autonomi', 'table-kepimpinan'];
                 tables.forEach(tableId => {
                     const tbody = document.getElementById(tableId);
@@ -275,7 +235,6 @@
                     });
                 });
                 document.getElementById('memberList').style.display = 'block';
-                
                 if (hasSubmitted) {
                     const statusDiv = document.getElementById('submissionStatus');
                     statusDiv.textContent = 'Anda telah pun menghantar penilaian untuk kumpulan ini.';
@@ -285,6 +244,7 @@
             } catch (error) { console.error("Ralat memuatkan ahli: ", error); } 
             finally { loadBtn.disabled = false; loadBtn.textContent = 'Sahkan & Mula Menilai'; }
         }
+        
         document.getElementById('assessmentForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -322,7 +282,9 @@
                 submitBtn.disabled = false;
             });
         });
+
         function processExcel() {
+            // ... fungsi ini kekal sama ...
             const fileInput = document.getElementById('uploadExcel');
             const file = fileInput.files[0];
             if (!file) { alert('Sila pilih fail Excel.'); return; }
@@ -335,9 +297,7 @@
                 const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 if (json.length === 0 || !json[0]['Nama Pelajar'] || !json[0]['Kumpulan'] || !json[0]['No. KP']) {
                     alert('Ralat: Fail Excel mesti mempunyai lajur "Nama Pelajar", "Kumpulan", dan "No. KP".');
-                    processBtn.disabled = false;
-                    processBtn.textContent = 'Muat Naik Senarai Pelajar';
-                    return;
+                    processBtn.disabled = false; processBtn.textContent = 'Muat Naik Senarai Pelajar'; return;
                 }
                 const batch = db.batch();
                 json.forEach(student => {
@@ -348,16 +308,16 @@
                     alert(`${json.length} data pelajar telah berjaya disimpan!`);
                     fileInput.value = '';
                 }).catch(err => alert("Gagal menyimpan data.")).finally(() => {
-                    processBtn.disabled = false;
-                    processBtn.textContent = 'Muat Naik Senarai Pelajar';
+                    processBtn.disabled = false; processBtn.textContent = 'Muat Naik Senarai Pelajar';
                 });
             };
             reader.readAsBinaryString(file);
         }
+        
         async function exportScoresToExcel() {
+            // ... fungsi ini kekal sama ...
             const exportBtn = document.getElementById('exportBtn');
-            exportBtn.disabled = true;
-            exportBtn.textContent = 'Menjana...';
+            exportBtn.disabled = true; exportBtn.textContent = 'Menjana...';
             try {
                 const snapshot = await db.collection('penilaian').get();
                 if (snapshot.empty) { alert('Tiada data penilaian ditemui.'); return; }
@@ -373,10 +333,102 @@
             } catch (err) { alert("Gagal memuat turun laporan."); } 
             finally { exportBtn.disabled = false; exportBtn.textContent = 'Muat Turun Laporan Penuh (Excel)'; }
         }
-        async function checkUnassessedStudents() { /* ... fungsi ini kekal sama ... */ }
-        function calculateTotals() { /* ... fungsi ini kekal sama ... */ }
+        
+        async function checkStudentsWhoHaventAssessed() {
+            const checkBtn = document.getElementById('checkBtn');
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Menyemak...';
+            const resultDiv = document.getElementById('unassessedResult');
+            resultDiv.innerHTML = '';
+            try {
+                // Get all students' IC and name from the 'pelajar' collection
+                const studentsSnapshot = await db.collection('pelajar').get();
+                const allStudents = new Map();
+                studentsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    allStudents.set(data.kp, data.nama); // Store as kp -> name
+                });
+
+                // Get all unique ICs of assessors from the 'penilaian' collection
+                const assessmentsSnapshot = await db.collection('penilaian').get();
+                const assessors = new Set();
+                assessmentsSnapshot.forEach(doc => {
+                    assessors.add(doc.data().penilai_kp);
+                });
+                
+                // Find students whose ICs are not in the assessors set
+                const studentsWhoHaventAssessed = [];
+                for (const [kp, name] of allStudents.entries()) {
+                    if (!assessors.has(kp)) {
+                        studentsWhoHaventAssessed.push(name);
+                    }
+                }
+
+                if (studentsWhoHaventAssessed.length === 0) {
+                    resultDiv.innerHTML = '<p><strong>Tahniah! Semua pelajar telah membuat penilaian.</strong></p>';
+                } else {
+                    let html = `<p><strong>Terdapat ${studentsWhoHaventAssessed.length} pelajar yang belum membuat penilaian:</strong></p><ul style="list-style-type: decimal; padding-left: 20px;">`;
+                    studentsWhoHaventAssessed.sort().forEach(name => {
+                        html += `<li>${name}</li>`;
+                    });
+                    html += '</ul>';
+                    resultDiv.innerHTML = html;
+                }
+            } catch (err) {
+                console.error("Ralat menyemak pelajar: ", err);
+                alert("Gagal mendapatkan senarai pelajar.");
+                resultDiv.innerHTML = '<p>Gagal mendapatkan senarai pelajar.</p>';
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = 'Semak Pelajar Belum Membuat Penilaian';
+            }
+        }
+        
+        function calculateTotals() {
+            const weights = {'komunikasi': 0.30, 'interpersonal': 0.30, 'praktikal': 0.15, 'autonomi': 0.15, 'kepimpinan': 0.10};
+            const totalTable = document.getElementById('totalTable');
+            totalTable.innerHTML = '';
+            let allFilled = true;
+
+            currentMembers.forEach((member, index) => {
+                let totalScore = 0;
+                let isComplete = true;
+
+                for (const skill in weights) {
+                    const tableId = `table-${skill}`;
+                    const select = document.querySelector(`#${tableId} tr:nth-child(${index + 1}) select`);
+                    if (select && select.value) {
+                        const score = parseInt(select.value);
+                        totalScore += (score / 5) * (weights[skill] * 100);
+                    } else {
+                        isComplete = false;
+                        allFilled = false;
+                    }
+                }
+                
+                if (!isComplete) return;
+
+                let level = '', color = '';
+                if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } 
+                else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } 
+                else if (totalScore < 65) { level = 'Kepuasan'; color = colors[2]; } 
+                else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } 
+                else { level = 'Amat Cemerlang'; color = colors[4]; }
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${member}</td><td>${totalScore.toFixed(2)}%</td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td>`;
+                totalTable.appendChild(tr);
+            });
+
+            if (!allFilled) { 
+                alert('Sila isi semua markah untuk mengira jumlah.'); 
+                totalTable.innerHTML = ''; 
+                document.getElementById('totalSection').style.display = 'none';
+                return; 
+            }
+            document.getElementById('totalSection').style.display = 'block';
+        }
     </script>
-      <footer class="text-center mt-4 text-muted">© 2025 Haniff Faizal</footer>
 </body>
 </html>
 
