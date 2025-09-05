@@ -34,6 +34,10 @@
         .modal-buttons .confirm-btn { background-color: #28a745; }
         .modal-buttons .cancel-btn { background-color: #6c757d; }
         .report-btn { background-color: #17a2b8; }
+        #radarChartSection { display: none; margin-top: 30px; }
+        .chart-container { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; }
+        .chart-controls { flex: 1; min-width: 200px; }
+        .chart-canvas-wrapper { flex: 2; min-width: 250px; max-width: 500px; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -236,7 +240,6 @@
                 });
                 form.innerHTML += `<button type="submit" id="submitBtn">Hantar & Simpan Penilaian</button>`;
                 
-                // Attach submit listener HERE
                 form.addEventListener('submit', handleFormSubmit);
 
                 memberListSection.style.display = 'block';
@@ -257,16 +260,10 @@
                 const tableIds = ['table-komunikasi', 'table-interpersonal', 'table-praktikal', 'table-autonomi', 'table-kepimpinan'];
                 for(const tableId of tableIds) {
                     const selectValue = document.querySelector(`#${tableId} tr:nth-child(${index + 1}) select`).value;
-                    if (selectValue === "") {
-                        allFilled = false;
-                        break;
-                    }
+                    if (selectValue === "") { allFilled = false; break; }
                 }
             });
-            if (!allFilled) {
-                alert('Sila lengkapkan semua markah untuk semua ahli sebelum menghantar.');
-                return;
-            }
+            if (!allFilled) { alert('Sila lengkapkan semua markah untuk semua ahli sebelum menghantar.'); return; }
             document.getElementById('confirmationModal').classList.add('visible');
         }
         function closeConfirmationModal() { document.getElementById('confirmationModal').classList.remove('visible'); }
