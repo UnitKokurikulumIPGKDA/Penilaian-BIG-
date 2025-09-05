@@ -44,10 +44,29 @@
         .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; }
         #unassessedList { list-style-type: decimal; padding-left: 20px; }
         #submissionStatus { padding: 15px; background-color: #ffc107; border: 1px solid #e0a800; border-radius: 6px; text-align: center; font-weight: bold; margin-top: 20px; }
+        
+        /* Gaya untuk Header dengan Logo */
+        .header-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            height: 70px; /* Saiz logo */
+            margin-right: 20px;
+        }
+        .title-wrapper {
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
-    <h1>Sistem Penilaian Rakan Sebaya (BIG)</h1>
+    <div class="header-container">
+        <img src="https://i.imgur.com/K4Gy3WN.png" alt="Logo IPG" class="logo">
+        <div class="title-wrapper">
+            <h1>Sistem Penilaian Rakan Sebaya (BIG)</h1>
+        </div>
+    </div>
     
     <div class="section">
         <h2>Langkah 1: Penilaian Kumpulan</h2>
