@@ -57,7 +57,7 @@
     <div class="section">
         <h2>Status Penilaian</h2>
         <p>Lihat senarai pelajar yang masih belum menghantar borang penilaian rakan sebaya.</p>
-        <button class="report-btn" onclick="checkStudentsWhoHaventAssessed('publicUnassessedResult')">Papar Senarai Terkini</button>
+        <button class="report-btn" onclick="checkStudentsWhoHaventAssessed('publicUnassessedResult', this)">Papar Senarai Terkini</button>
         <div id="publicUnassessedResult" style="margin-top: 15px;"></div>
     </div>
     
@@ -114,7 +114,7 @@
             <h4>Analisis & Eksport</h4>
             <button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button>
             <hr>
-            <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult')">Semak Pelajar Belum Membuat Penilaian</button>
+            <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult', this)">Semak Pelajar Belum Membuat Penilaian</button>
             <div id="unassessedResult" style="margin-top: 15px;"></div>
         </div>
     </div>
@@ -356,7 +356,6 @@
                 batch.commit().then(() => {
                     alert(`${json.length} data pelajar telah berjaya disimpan!`);
                     fileInput.value = '';
-                    populateGroupDropdown();
                 }).catch(err => alert("Gagal menyimpan data.")).finally(() => {
                     processBtn.disabled = false; processBtn.textContent = 'Muat Naik Senarai Pelajar';
                 });
@@ -381,8 +380,8 @@
             } catch (err) { alert("Gagal memuat turun laporan."); } 
             finally { exportBtn.disabled = false; exportBtn.textContent = 'Muat Turun Laporan Penuh (Excel)'; }
         }
-        async function checkStudentsWhoHaventAssessed(resultDivId) {
-             const button = event.target;
+        async function checkStudentsWhoHaventAssessed(resultDivId, buttonElement) {
+            const button = buttonElement;
             button.disabled = true;
             button.textContent = 'Menyemak...';
             const resultDiv = document.getElementById(resultDivId);
@@ -391,25 +390,46 @@
                 const studentsSnapshot = await db.collection('pelajar').get();
                 const allStudents = new Map();
                 studentsSnapshot.forEach(doc => { const data = doc.data(); allStudents.set(data.kp.toString(), data.nama); });
+
                 const assessmentsSnapshot = await db.collection('penilaian').get();
                 const assessors = new Set();
                 assessmentsSnapshot.forEach(doc => { assessors.add(doc.data().penilai_kp.toString()); });
+
+                const studentsWhoHaveAssessed = [];
                 const studentsWhoHaventAssessed = [];
+
                 for (const [kp, name] of allStudents.entries()) {
-                    if (!assessors.has(kp)) { studentsWhoHaventAssessed.push(name); }
+                    if (assessors.has(kp)) {
+                        studentsWhoHaveAssessed.push(name);
+                    } else {
+                        studentsWhoHaventAssessed.push(name);
+                    }
                 }
-                if (studentsWhoHaventAssessed.length === 0) {
-                    resultDiv.innerHTML = '<p><strong>Tahniah! Semua pelajar telah membuat penilaian.</strong></p>';
-                } else {
-                    let html = `<p><strong>Terdapat ${studentsWhoHaventAssessed.length} pelajar yang belum membuat penilaian:</strong></p><ul style="list-style-type: decimal; padding-left: 20px;">`;
-                    studentsWhoHaventAssessed.sort().forEach(name => { html += `<li>${name}</li>`; });
-                    html += '</ul>';
-                    resultDiv.innerHTML = html;
-                }
-            } catch (err) { console.error("Ralat: ", err); alert("Gagal mendapatkan senarai."); resultDiv.innerHTML = '<p>Gagal mendapatkan senarai.</p>'; } 
-            finally { 
-                button.disabled = false; 
-                if(resultDivId === 'publicUnassessedResult') {
+
+                studentsWhoHaveAssessed.sort();
+                studentsWhoHaventAssessed.sort();
+
+                let html = `
+                    <div>
+                        <h4>Telah Membuat Penilaian (${studentsWhoHaveAssessed.length} orang)</h4>
+                        ${studentsWhoHaveAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaveAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tiada pelajar.</p>'}
+                    </div>
+                    <hr style="margin: 20px 0;">
+                    <div>
+                        <h4>Belum Membuat Penilaian (${studentsWhoHaventAssessed.length} orang)</h4>
+                         ${studentsWhoHaventAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaventAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tahniah! Semua pelajar telah membuat penilaian.</p>'}
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = html;
+
+            } catch (err) {
+                console.error("Ralat menyemak pelajar: ", err);
+                alert("Gagal mendapatkan senarai pelajar.");
+                resultDiv.innerHTML = '<p>Gagal mendapatkan senarai pelajar.</p>';
+            } finally {
+                button.disabled = false;
+                if (resultDivId === 'publicUnassessedResult') {
                     button.textContent = 'Papar Senarai Terkini';
                 } else {
                     button.textContent = 'Semak Pelajar Belum Membuat Penilaian';
