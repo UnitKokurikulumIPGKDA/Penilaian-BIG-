@@ -33,7 +33,7 @@
         .modal-buttons button { width: 50%; }
         .modal-buttons .confirm-btn { background-color: #28a745; }
         .modal-buttons .cancel-btn { background-color: #6c757d; }
-        .button.report-btn { background-color: #17a2b8; }
+        .report-btn { background-color: #17a2b8; }
     </style>
 </head>
 <body>
@@ -74,7 +74,6 @@
         @Haniff Faizal UKOIPGKDA 2025
     </footer>
     
-    <!-- Modal Pengesahan -->
     <div id="confirmationModal" class="modal-overlay">
         <div class="modal-content">
             <h3>Sahkan Penghantaran</h3>
@@ -86,12 +85,9 @@
         </div>
     </div>
 
-    <!-- Modal Kejayaan -->
      <div id="successModal" class="modal-overlay">
         <div class="modal-content">
-            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="green" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
-                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="green" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
             <h2 style="color: green;">Terima Kasih!</h2>
             <p>Penilaian anda telah berjaya disimpan. Laman ini akan dimuat semula.</p>
         </div>
@@ -99,6 +95,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -126,42 +123,10 @@
                 const adminSection = document.getElementById('adminSection');
                 adminSection.style.display = 'block';
                 adminSection.innerHTML = `
-                    <hr>
-                    <h4>Laporan Rumusan Kumpulan</h4>
-                    <div class="input-group">
-                        <label for="adminGroupSelect">Pilih Kumpulan untuk Papar Laporan:</label>
-                        <select id="adminGroupSelect"></select>
-                    </div>
-                    <button id="generateReportBtn" class="report-btn" onclick="generateAdminReport()">Jana Laporan Rumusan</button>
-                    <div id="adminReportContainer" style="margin-top: 20px;" class="table-responsive"></div>
-                    <div id="radarChartSection">
-                        <hr style="margin-top: 30px;">
-                        <h4>Visualisasi Markah Pelajar</h4>
-                        <div class="chart-container">
-                            <div class="chart-controls">
-                                <div class="input-group">
-                                    <label for="studentChartSelect">Pilih Pelajar:</label>
-                                    <select id="studentChartSelect" onchange="generateRadarChart()"></select>
-                                </div>
-                            </div>
-                            <div class="chart-canvas-wrapper"><canvas id="myRadarChart"></canvas></div>
-                        </div>
-                    </div>
-                    <hr style="margin-top: 30px;">
-                    <h4>Pengurusan Data</h4>
-                    <div class="input-group">
-                        <label for="uploadExcel">Muat Naik Senarai Pelajar:</label>
-                        <p style="font-size: 0.9em; color: #6c757d;">Sistem akan **menambah** pelajar baru. Pastikan lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong> wujud.</p>
-                        <input type="file" id="uploadExcel" accept=".xlsx, .xls">
-                    </div>
-                    <button id="processBtn" class="upload" onclick="processExcel()">Muat Naik Senarai Pelajar</button>
-                    <hr style="margin-top: 30px;">
-                    <h4>Analisis & Eksport</h4>
-                    <button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button>
-                    <hr>
-                    <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult', this)">Semak Pelajar Belum Membuat Penilaian</button>
-                    <div id="unassessedResult" style="margin-top: 15px;"></div>
-                `;
+                    <hr><h4>Laporan Rumusan Kumpulan</h4><div class="input-group"><label for="adminGroupSelect">Pilih Kumpulan:</label><select id="adminGroupSelect"></select></div><button id="generateReportBtn" class="report-btn" onclick="generateAdminReport()">Jana Laporan</button><div id="adminReportContainer" class="table-responsive" style="margin-top: 20px;"></div>
+                    <div id="radarChartSection"><hr style="margin-top: 30px;"><h4>Visualisasi Markah Pelajar</h4><div class="chart-container"><div class="chart-controls"><div class="input-group"><label for="studentChartSelect">Pilih Pelajar:</label><select id="studentChartSelect" onchange="generateRadarChart()"></select></div></div><div class="chart-canvas-wrapper"><canvas id="myRadarChart"></canvas></div></div></div>
+                    <hr style="margin-top: 30px;"><h4>Pengurusan Data</h4><div class="input-group"><label for="uploadExcel">Muat Naik Senarai Pelajar:</label><p style="font-size: 0.9em; color: #6c757d;">Sistem akan **menambah** pelajar baru. Pastikan lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong> wujud.</p><input type="file" id="uploadExcel" accept=".xlsx, .xls"></div><button id="processBtn" class="upload" onclick="processExcel()">Muat Naik Senarai</button>
+                    <hr style="margin-top: 30px;"><h4>Analisis & Eksport</h4><button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button><hr><button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult', this)">Semak Pelajar Belum Membuat Penilaian</button><div id="unassessedResult" style="margin-top: 15px;"></div>`;
                 try {
                     const snapshot = await db.collection('pelajar').get();
                     const groups = new Set();
@@ -175,19 +140,6 @@
             } else if (password !== null) { alert('Kata laluan salah. Akses ditolak.'); }
         }
 
-        async function generateAdminReport() { /* ... Function is complete and correct ... */ }
-        function generateRadarChart() { /* ... Function is complete and correct ... */ }
-        async function loadMembers() { /* ... Function is complete and correct ... */ }
-        document.addEventListener('submit', function(e) { /* ... Function is complete and correct ... */ });
-        function closeConfirmationModal() { document.getElementById('confirmationModal').classList.remove('visible'); }
-        function handleFinalSubmit() { /* ... Function is complete and correct ... */ }
-        function processExcel() { /* ... Function is complete and correct ... */ }
-        async function exportScoresToExcel() { /* ... Function is complete and correct ... */ }
-        async function checkStudentsWhoHaventAssessed(resultDivId, buttonElement) { /* ... Function is complete and correct ... */ }
-    </script>
-    
-    <!-- Full JS for other functions -->
-    <script>
         async function generateAdminReport() {
             const groupNo = document.getElementById('adminGroupSelect').value;
             if (!groupNo) { alert('Sila pilih kumpulan.'); return; }
@@ -199,7 +151,7 @@
             if (myRadarChart) myRadarChart.destroy();
             try {
                 const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get();
-                if (assessmentsSnapshot.empty) { container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>'; reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; return; }
+                if (assessmentsSnapshot.empty) { container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>'; return; }
                 const studentData = {};
                 assessmentsSnapshot.forEach(doc => {
                     const data = doc.data(); const studentName = data.nama_dinilai;
@@ -230,6 +182,7 @@
             } catch (error) { console.error("Error generating report: ", error); container.innerHTML = '<p>Gagal menjana laporan.</p>'; } 
             finally { reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; }
         }
+
         function generateRadarChart() {
             const studentName = document.getElementById('studentChartSelect').value;
             const chartCanvas = document.getElementById('myRadarChart');
@@ -250,12 +203,10 @@
                         pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(0, 123, 255, 1)'
                     }]
                 },
-                options: {
-                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 5, ticks: { stepSize: 1 } } },
-                    elements: { line: { borderWidth: 3 } }
-                }
+                options: { scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 5, ticks: { stepSize: 1 } } }, elements: { line: { borderWidth: 3 } } }
             });
         }
+        
         async function loadMembers() {
             const groupNo = document.getElementById('groupNo').value.trim();
             const icNo = document.getElementById('icNo').value.trim().replace(/-/g, '');
@@ -279,18 +230,15 @@
                 currentMembers = sortedAllMembers.filter(member => member !== currentUserData.nama);
                 const form = document.getElementById('assessmentForm');
                 const skills = [ { id: 'komunikasi', name: 'Kemahiran Komunikasi' }, { id: 'interpersonal', name: 'Kemahiran Interpersonal' }, { id: 'praktikal', name: 'Kemahiran Praktikal' }, { id: 'autonomi', name: 'Autonomi dan Tanggungjawab' }, { id: 'kepimpinan', name: 'Kepimpinan' } ];
-                const rubricDetails = {
-                    komunikasi: '<ul><li><strong>1 (Lemah):</strong> Tidak berkomunikasi atau sukar difahami.</li><li><strong>2 (Sederhana):</strong> Menyampaikan idea asas tetapi kurang jelas.</li><li><strong>3 (Kepuasan):</strong> Berkomunikasi dengan jelas & mengambil bahagian.</li><li><strong>4 (Cemerlang):</strong> Berkomunikasi dengan sangat jelas, efektif, & meyakinkan.</li><li><strong>5 (Amat Cemerlang):</strong> Komunikasi luar biasa, mendengar aktif & memimpin perbincangan.</li></ul>',
-                    interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepuasan):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4 (Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>',
-                    praktikal: '<ul><li><strong>1 (Lemah):</strong> Tidak melaksanakan tugas atau hasil sangat lemah.</li><li><strong>2 (Sederhana):</strong> Melaksanakan tugas asas dengan banyak bimbingan.</li><li><strong>3 (Kepuasan):</strong> Melaksanakan tugas dengan baik mengikut arahan.</li><li><strong>4 (Cemerlang):</strong> Melaksanakan tugas dengan cekap, teliti & pengawasan minimum.</li><li><strong>5 (Amat Cemerlang):</strong> Melaksanakan tugas dengan inovatif & kemahiran teknikal tinggi.</li></ul>',
-                    autonomi: '<ul><li><strong>1 (Lemah):</strong> Sangat bergantung & mengelak tanggungjawab.</li><li><strong>2 (Sederhana):</strong> Sedikit autonomi & perlu peringatan.</li><li><strong>3 (Kepuasan):</strong> Bertanggungjawab & selesaikan tugas ikut tempoh.</li><li><strong>4 (Cemerlang):</strong> Autonomi tinggi, proaktif & boleh dipercayai.</li><li><strong>5 (Amat Cemerlang):</strong> Kepimpinan autonomi, ambil inisiatif & bertanggungjawab sepenuhnya.</li></ul>',
-                    kepimpinan: '<ul><li><strong>1 (Lemah):</strong> Tidak menunjukkan ciri kepimpinan & pasif.</li><li><strong>2 (Sederhana):</strong> Kepimpinan minimum, hanya apabila diminta.</li><li><strong>3 (Kepuasan):</strong> Boleh memimpin tugas kecil & beri arahan jelas.</li><li><strong>4 (Cemerlang):</strong> Memimpin dengan efektif, agih tugas adil & beri motivasi.</li><li><strong>5 (Amat Cemerlang):</strong> Sumber inspirasi, memimpin dengan teladan & menyelesaikan konflik.</li></ul>'
-                };
                 skills.forEach(skill => {
                     const tableRows = currentMembers.map(member => `<tr><td>${member}</td><td><select><option value="">Pilih</option>${[1,2,3,4,5].map(v => `<option value="${v}">${v}</option>`).join('')}</select></td></tr>`).join('');
-                    form.innerHTML += `<div class="section"><h2>${skill.name}</h2><div class="rubric-details"><p><strong>Kriteria Penilaian:</strong></p>${rubricDetails[skill.id]}</div><div class="table-responsive"><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-${skill.id}">${tableRows}</tbody></table></div></div>`;
+                    form.innerHTML += `<div class="section"><h2>${skill.name}</h2><div class="table-responsive"><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-${skill.id}">${tableRows}</tbody></table></div></div>`;
                 });
                 form.innerHTML += `<button type="submit" id="submitBtn">Hantar & Simpan Penilaian</button>`;
+                
+                // Attach submit listener HERE
+                form.addEventListener('submit', handleFormSubmit);
+
                 memberListSection.style.display = 'block';
                 if (hasSubmitted) {
                     const statusDiv = document.getElementById('submissionStatus');
@@ -301,7 +249,56 @@
             } catch (error) { console.error("Ralat: ", error); } 
             finally { loadBtn.disabled = false; loadBtn.textContent = 'Sahkan Diri'; }
         }
-        document.addEventListener('submit', function(e) { /* This function is now in the main script block */ });
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            let allFilled = true;
+            currentMembers.forEach((member, index) => {
+                const tableIds = ['table-komunikasi', 'table-interpersonal', 'table-praktikal', 'table-autonomi', 'table-kepimpinan'];
+                for(const tableId of tableIds) {
+                    const selectValue = document.querySelector(`#${tableId} tr:nth-child(${index + 1}) select`).value;
+                    if (selectValue === "") {
+                        allFilled = false;
+                        break;
+                    }
+                }
+            });
+            if (!allFilled) {
+                alert('Sila lengkapkan semua markah untuk semua ahli sebelum menghantar.');
+                return;
+            }
+            document.getElementById('confirmationModal').classList.add('visible');
+        }
+        function closeConfirmationModal() { document.getElementById('confirmationModal').classList.remove('visible'); }
+        function handleFinalSubmit() {
+            const confirmBtn = document.getElementById('confirmBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            confirmBtn.disabled = true; cancelBtn.disabled = true; confirmBtn.textContent = 'Menghantar...';
+            const assessments = [];
+            const groupNo = document.getElementById('groupNo').value.trim();
+            const timestamp = new Date();
+            currentMembers.forEach((member, index) => {
+                const scores = {
+                    komunikasi: parseInt(document.querySelector(`#table-komunikasi tr:nth-child(${index + 1}) select`).value),
+                    interpersonal: parseInt(document.querySelector(`#table-interpersonal tr:nth-child(${index + 1}) select`).value),
+                    praktikal: parseInt(document.querySelector(`#table-praktikal tr:nth-child(${index + 1}) select`).value),
+                    autonomi: parseInt(document.querySelector(`#table-autonomi tr:nth-child(${index + 1}) select`).value),
+                    kepimpinan: parseInt(document.querySelector(`#table-kepimpinan tr:nth-child(${index + 1}) select`).value)
+                };
+                assessments.push({ nama_dinilai: member, kumpulan: groupNo, skor: scores, tarikhPenilaian: timestamp, penilai_kp: currentUserData.kp });
+            });
+            const batch = db.batch();
+            assessments.forEach(assessment => { const docRef = db.collection('penilaian').doc(); batch.set(docRef, assessment); });
+            batch.commit().then(() => {
+                closeConfirmationModal();
+                document.getElementById('successModal').classList.add('visible');
+                setTimeout(() => { window.location.reload(); }, 3000);
+            }).catch(error => {
+                alert("Gagal menghantar penilaian. Sila cuba lagi.");
+                confirmBtn.disabled = false; cancelBtn.disabled = false; confirmBtn.textContent = 'Ya, Pasti';
+                closeConfirmationModal();
+            });
+        }
         function processExcel() {
             const fileInput = document.getElementById('uploadExcel');
             const file = fileInput.files[0];
@@ -358,50 +355,23 @@
                 const studentsSnapshot = await db.collection('pelajar').get();
                 const allStudents = new Map();
                 studentsSnapshot.forEach(doc => { const data = doc.data(); allStudents.set(data.kp.toString(), data.nama); });
-
                 const assessmentsSnapshot = await db.collection('penilaian').get();
                 const assessors = new Set();
                 assessmentsSnapshot.forEach(doc => { assessors.add(doc.data().penilai_kp.toString()); });
-
                 const studentsWhoHaveAssessed = [];
                 const studentsWhoHaventAssessed = [];
-
                 for (const [kp, name] of allStudents.entries()) {
-                    if (assessors.has(kp)) {
-                        studentsWhoHaveAssessed.push(name);
-                    } else {
-                        studentsWhoHaventAssessed.push(name);
-                    }
+                    if (assessors.has(kp)) { studentsWhoHaveAssessed.push(name); } 
+                    else { studentsWhoHaventAssessed.push(name); }
                 }
-
-                studentsWhoHaveAssessed.sort();
-                studentsWhoHaventAssessed.sort();
-
-                let html = `
-                    <div>
-                        <h4>Telah Membuat Penilaian (${studentsWhoHaveAssessed.length} orang)</h4>
-                        ${studentsWhoHaveAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaveAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tiada pelajar.</p>'}
-                    </div>
-                    <hr style="margin: 20px 0;">
-                    <div>
-                        <h4>Belum Membuat Penilaian (${studentsWhoHaventAssessed.length} orang)</h4>
-                         ${studentsWhoHaventAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaventAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tahniah! Semua pelajar telah membuat penilaian.</p>'}
-                    </div>
-                `;
-                
+                studentsWhoHaveAssessed.sort(); studentsWhoHaventAssessed.sort();
+                let html = `<div><h4>Telah Membuat Penilaian (${studentsWhoHaveAssessed.length} orang)</h4>${studentsWhoHaveAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaveAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tiada pelajar.</p>'}</div><hr style="margin: 20px 0;"><div><h4>Belum Membuat Penilaian (${studentsWhoHaventAssessed.length} orang)</h4>${studentsWhoHaventAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaventAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tahniah! Semua pelajar telah membuat penilaian.</p>'}</div>`;
                 resultDiv.innerHTML = html;
-
-            } catch (err) {
-                console.error("Ralat menyemak pelajar: ", err);
-                alert("Gagal mendapatkan senarai pelajar.");
-                resultDiv.innerHTML = '<p>Gagal mendapatkan senarai pelajar.</p>';
-            } finally {
-                button.disabled = false;
-                if (resultDivId === 'publicUnassessedResult') {
-                    button.textContent = 'Papar Senarai Terkini';
-                } else {
-                    button.textContent = 'Semak Pelajar Belum Membuat Penilaian';
-                }
+            } catch (err) { console.error("Ralat: ", err); alert("Gagal mendapatkan senarai."); resultDiv.innerHTML = '<p>Gagal mendapatkan senarai.</p>'; } 
+            finally { 
+                button.disabled = false; 
+                if (resultDivId === 'publicUnassessedResult') { button.textContent = 'Papar Senarai Terkini'; } 
+                else { button.textContent = 'Semak Pelajar Belum Membuat Penilaian'; }
             }
         }
     </script>
