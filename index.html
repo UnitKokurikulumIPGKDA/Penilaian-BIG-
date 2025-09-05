@@ -34,13 +34,16 @@
         footer { position: fixed; left: 0; bottom: 0; width: 100%; background-color: #343a40; color: white; text-align: center; padding: 10px 0; font-size: 0.9em; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         #radarChartSection { display: none; margin-top: 30px; }
+        .chart-container { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; }
+        .chart-controls { flex: 1; min-width: 200px; }
+        .chart-canvas-wrapper { flex: 2; min-width: 250px; }
     </style>
 </head>
 <body>
     <div class="header-container">
         <img src="https://i.imgur.com/K4Gy3WN.png" alt="Logo IPG" class="logo">
         <div class="title-wrapper">
-            <h1>Sistem Penilaian Rakan Kumpulan</h1>
+            <h1>Sistem Penilaian Ahli Kumpulan</h1>
         </div>
     </div>
     
@@ -72,11 +75,17 @@
             <div id="radarChartSection">
                 <hr style="margin-top: 30px;">
                 <h4>Visualisasi Markah Pelajar</h4>
-                <div class="input-group">
-                    <label for="studentChartSelect">Pilih Pelajar untuk Papar Carta Radar:</label>
-                    <select id="studentChartSelect" onchange="generateRadarChart()"></select>
+                <div class="chart-container">
+                    <div class="chart-controls">
+                        <div class="input-group">
+                            <label for="studentChartSelect">Pilih Pelajar:</label>
+                            <select id="studentChartSelect" onchange="generateRadarChart()"></select>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="myRadarChart"></canvas>
+                    </div>
                 </div>
-                <canvas id="myRadarChart"></canvas>
             </div>
 
             <hr style="margin-top: 30px;">
@@ -119,8 +128,8 @@
         const ADMIN_PASSWORD = 'AdminBIG2025';
         let currentMembers = []; 
         let currentUserData = {};
-        let reportData = {}; // Simpan data laporan untuk carta
-        let myRadarChart = null; // Simpan instance carta
+        let reportData = {};
+        let myRadarChart = null;
         const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60'];
 
         async function showAdminSection() {
@@ -148,8 +157,8 @@
             const chartSection = document.getElementById('radarChartSection');
             reportBtn.disabled = true; reportBtn.textContent = 'Menjana...'; 
             container.innerHTML = 'Memuatkan data...';
-            chartSection.style.display = 'none'; // Sembunyikan carta semasa menjana
-            if (myRadarChart) myRadarChart.destroy(); // Padam carta lama
+            chartSection.style.display = 'none';
+            if (myRadarChart) myRadarChart.destroy();
 
             try {
                 const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get();
@@ -161,7 +170,7 @@
                     Object.keys(data.skor).forEach(key => { studentData[studentName][key].push(data.skor[key]); });
                 });
 
-                reportData = {}; // Kosongkan data laporan lama
+                reportData = {};
                 let tableHTML = `<table id="adminReportTable"><thead><tr><th>Nama Pelajar</th><th>Purata Komunikasi</th><th>Purata Interpersonal</th><th>Purata Praktikal</th><th>Purata Autonomi</th><th>Purata Kepimpinan</th><th>Jumlah Markah (%)</th><th>Tahap</th></tr></thead><tbody>`;
                 for (const name in studentData) {
                     const avgScores = {}; let totalScore = 0;
@@ -172,14 +181,13 @@
                         avgScores[skill] = avg.toFixed(2);
                         totalScore += (avg / 5) * (weights[skill] * 100);
                     }
-                    reportData[name] = avgScores; // Simpan purata markah untuk carta
+                    reportData[name] = avgScores;
                     let level = '', color = '';
                     if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } else if (totalScore < 65) { level = 'Kepuasan'; color = colors[2]; } else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } else { level = 'Amat Cemerlang'; color = colors[4]; }
                     tableHTML += `<tr><td>${name}</td><td>${avgScores.komunikasi}</td><td>${avgScores.interpersonal}</td><td>${avgScores.praktikal}</td><td>${avgScores.autonomi}</td><td>${avgScores.kepimpinan}</td><td><strong>${totalScore.toFixed(2)}%</strong></td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td></tr>`;
                 }
                 tableHTML += '</tbody></table>'; container.innerHTML = tableHTML;
 
-                // Populate student dropdown for chart
                 const studentSelect = document.getElementById('studentChartSelect');
                 studentSelect.innerHTML = '<option value="">Pilih Pelajar</option>';
                 Object.keys(reportData).sort().forEach(name => {
@@ -225,13 +233,8 @@
                 }
             });
         }
-
+        
         // --- All other functions remain unchanged ---
-        async function loadMembers() { /* ... full code ... */ }
-        document.addEventListener('submit', function(e) { /* ... full code ... */ });
-        function processExcel() { /* ... full code ... */ }
-        async function exportScoresToExcel() { /* ... full code ... */ }
-        async function checkStudentsWhoHaventAssessed() { /* ... full code ... */ }
     </script>
     
     <!-- Full JS for other functions -->
@@ -265,7 +268,7 @@
                 ];
                  const rubricDetails = {
                     komunikasi: '<ul><li><strong>1 (Lemah):</strong> Tidak berkomunikasi atau sukar difahami.</li><li><strong>2 (Sederhana):</strong> Menyampaikan idea asas tetapi kurang jelas.</li><li><strong>3 (Kepuasan):</strong> Berkomunikasi dengan jelas & mengambil bahagian.</li><li><strong>4 (Cemerlang):</strong> Berkomunikasi dengan sangat jelas, efektif, & meyakinkan.</li><li><strong>5 (Amat Cemerlang):</strong> Komunikasi luar biasa, mendengar aktif & memimpin perbincangan.</li></ul>',
-                    interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepuasan):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4 (Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>',
+                    interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepuasan):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4-Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>',
                     praktikal: '<ul><li><strong>1 (Lemah):</strong> Tidak melaksanakan tugas atau hasil sangat lemah.</li><li><strong>2 (Sederhana):</strong> Melaksanakan tugas asas dengan banyak bimbingan.</li><li><strong>3 (Kepuasan):</strong> Melaksanakan tugas dengan baik mengikut arahan.</li><li><strong>4 (Cemerlang):</strong> Melaksanakan tugas dengan cekap, teliti & pengawasan minimum.</li><li><strong>5 (Amat Cemerlang):</strong> Melaksanakan tugas dengan inovatif & kemahiran teknikal tinggi.</li></ul>',
                     autonomi: '<ul><li><strong>1 (Lemah):</strong> Sangat bergantung & mengelak tanggungjawab.</li><li><strong>2 (Sederhana):</strong> Sedikit autonomi & perlu peringatan.</li><li><strong>3 (Kepuasan):</strong> Bertanggungjawab & selesaikan tugas ikut tempoh.</li><li><strong>4 (Cemerlang):</strong> Autonomi tinggi, proaktif & boleh dipercayai.</li><li><strong>5 (Amat Cemerlang):</strong> Kepimpinan autonomi, ambil inisiatif & bertanggungjawab sepenuhnya.</li></ul>',
                     kepimpinan: '<ul><li><strong>1 (Lemah):</strong> Tidak menunjukkan ciri kepimpinan & pasif.</li><li><strong>2 (Sederhana):</strong> Kepimpinan minimum, hanya apabila diminta.</li><li><strong>3 (Kepuasan):</strong> Boleh memimpin tugas kecil & beri arahan jelas.</li><li><strong>4 (Cemerlang):</strong> Memimpin dengan efektif, agih tugas adil & beri motivasi.</li><li><strong>5 (Amat Cemerlang):</strong> Sumber inspirasi, memimpin dengan teladan & menyelesaikan konflik.</li></ul>'
