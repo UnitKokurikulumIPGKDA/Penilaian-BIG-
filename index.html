@@ -18,6 +18,21 @@
         .kepuasan { background-color: #f1c40f; color: black; }
         .cemerlang { background-color: #2ecc71; color: white; }
         .amat { background-color: #27ae60; color: white; }
+        .rubric-details {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .rubric-details ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+        .rubric-details li {
+            margin-bottom: 5px;
+        }
         #memberList, #reportSection, #adminSection { display: none; }
         button { background-color: #007bff; color: white; padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; font-size: 16px; margin-top: 10px; font-weight: 600;}
         button.upload { background-color: #28a745; }
@@ -54,12 +69,25 @@
         <ul id="members"></ul>
         
         <form id="assessmentForm">
-            <!-- Borang Penilaian (Struktur sama seperti sebelum ini) -->
-            <div class="section"><h2>HP3 Kemahiran Komunikasi (30%)</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-komunikasi"></tbody></table></div>
-            <div class="section"><h2>HP4 Kemahiran Interpersonal (30%)</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-interpersonal"></tbody></table></div>
-            <div class="section"><h2>HP8 Kemahiran Praktikal (15%)</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-praktikal"></tbody></table></div>
-            <div class="section"><h2>HP9 Autonomi dan Tanggungjawab (15%)</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-autonomi"></tbody></table></div>
-            <div class="section"><h2>HP10 Kepimpinan (10%)</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-kepimpinan"></tbody></table></div>
+            <!-- Borang Penilaian (Struktur dikemaskini) -->
+            <div class="section">
+                <h2>Kemahiran Komunikasi</h2>
+                <div class="rubric-details">
+                    <p><strong>Kriteria Penilaian:</strong></p>
+                    <ul>
+                        <li><strong>1 (Lemah):</strong> Tidak berkomunikasi atau komunikasi sangat sukar difahami.</li>
+                        <li><strong>2 (Sederhana):</strong> Boleh menyampaikan idea asas tetapi kurang jelas dan tidak konsisten.</li>
+                        <li><strong>3 (Kepuasan):</strong> Boleh berkomunikasi dengan jelas dan mengambil bahagian dalam perbincangan.</li>
+                        <li><strong>4 (Cemerlang):</strong> Berkomunikasi dengan sangat jelas, efektif, dan meyakinkan.</li>
+                        <li><strong>5 (Amat Cemerlang):</strong> Komunikasi yang luar biasa, mempamerkan kemahiran mendengar yang aktif dan mampu memimpin perbincangan dengan berkesan.</li>
+                    </ul>
+                </div>
+                <table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-komunikasi"></tbody></table>
+            </div>
+            <div class="section"><h2>Kemahiran Interpersonal</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-interpersonal"></tbody></table></div>
+            <div class="section"><h2>Kemahiran Praktikal</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-praktikal"></tbody></table></div>
+            <div class="section"><h2>Autonomi dan Tanggungjawab</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-autonomi"></tbody></table></div>
+            <div class="section"><h2>Kepimpinan</h2><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-kepimpinan"></tbody></table></div>
 
             <div id="totalSection" style="display: none;"><h2>Jumlah Markah</h2><table><thead><tr><th>Nama Ahli</th><th>Jumlah (%)</th><th>Tahap</th></tr></thead><tbody id="totalTable"></tbody></table></div>
             
