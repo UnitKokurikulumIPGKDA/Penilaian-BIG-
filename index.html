@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Borang Penilaian Akhir - Sistem BIG</title>
     <script type="text/javascript" src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0 10px 80px 10px; background-color: #f0f2f5; }
         h1, h2, h3, h4 { text-align: center; color: #1c1e21; }
@@ -32,13 +33,14 @@
         #adminReportTable th { font-size: 0.8em; }
         footer { position: fixed; left: 0; bottom: 0; width: 100%; background-color: #343a40; color: white; text-align: center; padding: 10px 0; font-size: 0.9em; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #radarChartSection { display: none; margin-top: 30px; }
     </style>
 </head>
 <body>
     <div class="header-container">
         <img src="https://i.imgur.com/K4Gy3WN.png" alt="Logo IPG" class="logo">
         <div class="title-wrapper">
-            <h1>Sistem Penilaian Rakan Sebaya</h1>
+            <h1>Sistem Penilaian Rakan Kumpulan</h1>
         </div>
     </div>
     
@@ -66,20 +68,29 @@
             </div>
             <button id="generateReportBtn" class="report-btn" onclick="generateAdminReport()">Jana Laporan Rumusan</button>
             <div id="adminReportContainer" style="margin-top: 20px;" class="table-responsive"></div>
+            
+            <div id="radarChartSection">
+                <hr style="margin-top: 30px;">
+                <h4>Visualisasi Markah Pelajar</h4>
+                <div class="input-group">
+                    <label for="studentChartSelect">Pilih Pelajar untuk Papar Carta Radar:</label>
+                    <select id="studentChartSelect" onchange="generateRadarChart()"></select>
+                </div>
+                <canvas id="myRadarChart"></canvas>
+            </div>
+
             <hr style="margin-top: 30px;">
             <h4>Pengurusan Data</h4>
             <div class="input-group">
                 <label for="uploadExcel">Muat Naik Senarai Pelajar:</label>
-                <p style="font-size: 0.9em; color: #6c757d;">Sistem akan **menambah** pelajar baru dari fail ini ke dalam data sedia ada. Pastikan fail Excel mempunyai lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong>.</p>
+                <p style="font-size: 0.9em; color: #6c757d;">Sistem akan **menambah** pelajar baru dari fail ini. Pastikan lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong> wujud.</p>
                 <input type="file" id="uploadExcel" accept=".xlsx, .xls">
             </div>
             <button id="processBtn" class="upload" onclick="processExcel()">Muat Naik Senarai Pelajar</button>
             <hr style="margin-top: 30px;">
             <h4>Analisis & Eksport</h4>
-            <p>Klik untuk memuat turun semua data mentah penilaian yang telah disimpan.</p>
             <button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button>
             <hr>
-            <p>Sistem akan menyemak senarai pelajar yang masih belum menghantar borang penilaian.</p>
             <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed()">Semak Pelajar Belum Membuat Penilaian</button>
             <div id="unassessedResult" style="margin-top: 15px;"></div>
         </div>
@@ -108,6 +119,8 @@
         const ADMIN_PASSWORD = 'AdminBIG2025';
         let currentMembers = []; 
         let currentUserData = {};
+        let reportData = {}; // Simpan data laporan untuk carta
+        let myRadarChart = null; // Simpan instance carta
         const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60'];
 
         async function showAdminSection() {
@@ -120,7 +133,6 @@
                     snapshot.forEach(doc => groups.add(doc.data().kumpulan));
                     const select = document.getElementById('adminGroupSelect');
                     select.innerHTML = '<option value="">Pilih Kumpulan</option>';
-                    // Diubah suai untuk menyusun nombor dan teks dengan betul
                     Array.from(groups).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(group => { 
                         select.innerHTML += `<option value="${group}">${group}</option>`; 
                     });
@@ -133,7 +145,12 @@
             if (!groupNo) { alert('Sila pilih kumpulan.'); return; }
             const reportBtn = document.getElementById('generateReportBtn');
             const container = document.getElementById('adminReportContainer');
-            reportBtn.disabled = true; reportBtn.textContent = 'Menjana...'; container.innerHTML = 'Memuatkan data...';
+            const chartSection = document.getElementById('radarChartSection');
+            reportBtn.disabled = true; reportBtn.textContent = 'Menjana...'; 
+            container.innerHTML = 'Memuatkan data...';
+            chartSection.style.display = 'none'; // Sembunyikan carta semasa menjana
+            if (myRadarChart) myRadarChart.destroy(); // Padam carta lama
+
             try {
                 const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get();
                 if (assessmentsSnapshot.empty) { container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>'; reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; return; }
@@ -143,6 +160,8 @@
                     if (!studentData[studentName]) { studentData[studentName] = { komunikasi: [], interpersonal: [], praktikal: [], autonomi: [], kepimpinan: [] }; }
                     Object.keys(data.skor).forEach(key => { studentData[studentName][key].push(data.skor[key]); });
                 });
+
+                reportData = {}; // Kosongkan data laporan lama
                 let tableHTML = `<table id="adminReportTable"><thead><tr><th>Nama Pelajar</th><th>Purata Komunikasi</th><th>Purata Interpersonal</th><th>Purata Praktikal</th><th>Purata Autonomi</th><th>Purata Kepimpinan</th><th>Jumlah Markah (%)</th><th>Tahap</th></tr></thead><tbody>`;
                 for (const name in studentData) {
                     const avgScores = {}; let totalScore = 0;
@@ -153,14 +172,70 @@
                         avgScores[skill] = avg.toFixed(2);
                         totalScore += (avg / 5) * (weights[skill] * 100);
                     }
+                    reportData[name] = avgScores; // Simpan purata markah untuk carta
                     let level = '', color = '';
                     if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } else if (totalScore < 65) { level = 'Kepuasan'; color = colors[2]; } else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } else { level = 'Amat Cemerlang'; color = colors[4]; }
                     tableHTML += `<tr><td>${name}</td><td>${avgScores.komunikasi}</td><td>${avgScores.interpersonal}</td><td>${avgScores.praktikal}</td><td>${avgScores.autonomi}</td><td>${avgScores.kepimpinan}</td><td><strong>${totalScore.toFixed(2)}%</strong></td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td></tr>`;
                 }
                 tableHTML += '</tbody></table>'; container.innerHTML = tableHTML;
+
+                // Populate student dropdown for chart
+                const studentSelect = document.getElementById('studentChartSelect');
+                studentSelect.innerHTML = '<option value="">Pilih Pelajar</option>';
+                Object.keys(reportData).sort().forEach(name => {
+                    studentSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                });
+                chartSection.style.display = 'block';
+
             } catch (error) { console.error("Error generating report: ", error); container.innerHTML = '<p>Gagal menjana laporan.</p>'; } 
             finally { reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; }
         }
+
+        function generateRadarChart() {
+            const studentName = document.getElementById('studentChartSelect').value;
+            const chartCanvas = document.getElementById('myRadarChart');
+            if (myRadarChart) myRadarChart.destroy();
+            if (!studentName) return;
+
+            const studentScores = reportData[studentName];
+            if (!studentScores) return;
+
+            const labels = ['Komunikasi', 'Interpersonal', 'Praktikal', 'Autonomi', 'Kepimpinan'];
+            const data = labels.map(label => studentScores[label.toLowerCase().split(' ')[0]]);
+
+            myRadarChart = new Chart(chartCanvas, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Purata Markah untuk ${studentName}`,
+                        data: data,
+                        fill: true,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(54, 162, 235)'
+                    }]
+                },
+                options: {
+                    scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 5, ticks: { stepSize: 1 } } },
+                    elements: { line: { borderWidth: 3 } }
+                }
+            });
+        }
+
+        // --- All other functions remain unchanged ---
+        async function loadMembers() { /* ... full code ... */ }
+        document.addEventListener('submit', function(e) { /* ... full code ... */ });
+        function processExcel() { /* ... full code ... */ }
+        async function exportScoresToExcel() { /* ... full code ... */ }
+        async function checkStudentsWhoHaventAssessed() { /* ... full code ... */ }
+    </script>
+    
+    <!-- Full JS for other functions -->
+    <script>
         async function loadMembers() {
             const groupNo = document.getElementById('groupNo').value.trim();
             const icNo = document.getElementById('icNo').value.trim().replace(/-/g, '');
@@ -181,13 +256,7 @@
                 const sortedAllMembers = Array.from(allMemberNames).sort();
                 
                 const memberListSection = document.getElementById('memberList');
-                memberListSection.innerHTML = `
-                    <h2 id="assessmentHeader">Borang Penilaian Kumpulan ${groupNo}</h2>
-                    <div id="submissionStatus" style="display:none;"></div>
-                    <h3>Senarai Ahli Kumpulan Anda</h3>
-                    <ul id="members">${sortedAllMembers.map(m => `<li>${m}</li>`).join('')}</ul>
-                    <form id="assessmentForm"></form>`;
-
+                memberListSection.innerHTML = `<h2 id="assessmentHeader">Borang Penilaian Kumpulan ${groupNo}</h2><div id="submissionStatus" style="display:none;"></div><h3>Senarai Ahli Kumpulan Anda</h3><ul id="members">${sortedAllMembers.map(m => `<li>${m}</li>`).join('')}</ul><form id="assessmentForm"></form>`;
                 currentMembers = sortedAllMembers.filter(member => member !== currentUserData.nama);
                 const form = document.getElementById('assessmentForm');
                 const skills = [
@@ -201,14 +270,11 @@
                     autonomi: '<ul><li><strong>1 (Lemah):</strong> Sangat bergantung & mengelak tanggungjawab.</li><li><strong>2 (Sederhana):</strong> Sedikit autonomi & perlu peringatan.</li><li><strong>3 (Kepuasan):</strong> Bertanggungjawab & selesaikan tugas ikut tempoh.</li><li><strong>4 (Cemerlang):</strong> Autonomi tinggi, proaktif & boleh dipercayai.</li><li><strong>5 (Amat Cemerlang):</strong> Kepimpinan autonomi, ambil inisiatif & bertanggungjawab sepenuhnya.</li></ul>',
                     kepimpinan: '<ul><li><strong>1 (Lemah):</strong> Tidak menunjukkan ciri kepimpinan & pasif.</li><li><strong>2 (Sederhana):</strong> Kepimpinan minimum, hanya apabila diminta.</li><li><strong>3 (Kepuasan):</strong> Boleh memimpin tugas kecil & beri arahan jelas.</li><li><strong>4 (Cemerlang):</strong> Memimpin dengan efektif, agih tugas adil & beri motivasi.</li><li><strong>5 (Amat Cemerlang):</strong> Sumber inspirasi, memimpin dengan teladan & menyelesaikan konflik.</li></ul>'
                 };
-
                 skills.forEach(skill => {
                     const tableRows = currentMembers.map(member => `<tr><td>${member}</td><td><select><option value="">Pilih</option>${[1,2,3,4,5].map(v => `<option value="${v}">${v}</option>`).join('')}</select></td></tr>`).join('');
                     form.innerHTML += `<div class="section"><h2>${skill.name}</h2><div class="rubric-details"><p><strong>Kriteria Penilaian:</strong></p>${rubricDetails[skill.id]}</div><div class="table-responsive"><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-${skill.id}">${tableRows}</tbody></table></div></div>`;
                 });
-                form.innerHTML += `<div id="totalSection" style="display: none;"><h2>Jumlah Markah</h2><div class="table-responsive"><table><thead><tr><th>Nama Ahli</th><th>Jumlah (%)</th><th>Tahap</th></tr></thead><tbody id="totalTable"></tbody></table></div></div>`;
-                form.innerHTML += `<button type="button" onclick="calculateTotals()">Kira Jumlah Markah</button><button type="submit" id="submitBtn">Hantar & Simpan Penilaian</button>`;
-                
+                form.innerHTML += `<button type="submit" id="submitBtn">Hantar & Simpan Penilaian</button>`;
                 memberListSection.style.display = 'block';
                 if (hasSubmitted) {
                     const statusDiv = document.getElementById('submissionStatus');
@@ -323,37 +389,6 @@
                 }
             } catch (err) { console.error("Ralat: ", err); alert("Gagal mendapatkan senarai."); resultDiv.innerHTML = '<p>Gagal mendapatkan senarai.</p>'; } 
             finally { checkBtn.disabled = false; checkBtn.textContent = 'Semak Pelajar Belum Membuat Penilaian'; }
-        }
-        function calculateTotals() {
-            const weights = {'komunikasi': 0.30, 'interpersonal': 0.30, 'praktikal': 0.15, 'autonomi': 0.15, 'kepimpinan': 0.10};
-            const totalTable = document.getElementById('totalTable');
-            totalTable.innerHTML = '';
-            let allFilled = true;
-            currentMembers.forEach((member, memberIndex) => {
-                let totalScore = 0;
-                let isCompleteForThisMember = true;
-                for (const skill in weights) {
-                    const tableId = `table-${skill}`;
-                    const memberRow = document.querySelector(`#${tableId} tr:nth-child(${memberIndex + 1})`);
-                    if (memberRow) {
-                        const select = memberRow.querySelector('select');
-                        if (select && select.value) { const score = parseInt(select.value); totalScore += (score / 5) * (weights[skill] * 100); } 
-                        else { isCompleteForThisMember = false; }
-                    }
-                }
-                if (!isCompleteForThisMember) { allFilled = false; return; }
-                let level = '', color = '';
-                if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } 
-                else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } 
-                else if (totalScore < 65) { level = 'Kepuasan'; color = colors[2]; } 
-                else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } 
-                else { level = 'Amat Cemerlang'; color = colors[4]; }
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${member}</td><td>${totalScore.toFixed(2)}%</td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td>`;
-                totalTable.appendChild(tr);
-            });
-            if (!allFilled) { alert('Sila isi semua markah untuk semua ahli.'); totalTable.innerHTML = ''; document.getElementById('totalSection').style.display = 'none'; return; }
-            document.getElementById('totalSection').style.display = 'block';
         }
     </script>
 </body>
