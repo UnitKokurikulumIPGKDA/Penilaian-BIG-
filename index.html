@@ -14,7 +14,7 @@
         h1, h2, h3, h4 { text-align: center; color: #1c1e21; }
         h1 { 
             font-family: 'Krona One', sans-serif; 
-            font-size: 1.8em; 
+            font-size: 1.4em; 
             margin: 0; 
             flex-shrink: 0;
             text-transform: uppercase;
@@ -53,12 +53,19 @@
         <h1>SISTEM PENILAIAN<br>AHLI KUMPULAN</h1>
         <img src="https://i.imgur.com/HfCmzEY.png" alt="Logo BIG" class="logo">
     </div>
+
+    <div class="section">
+        <h2>Status Penilaian</h2>
+        <p>Lihat senarai pelajar yang masih belum menghantar borang penilaian rakan sebaya.</p>
+        <button class="report-btn" onclick="checkStudentsWhoHaventAssessed('publicUnassessedResult')">Papar Senarai Terkini</button>
+        <div id="publicUnassessedResult" style="margin-top: 15px;"></div>
+    </div>
     
     <div class="section">
-        <h2>Langkah 1: Pengesahan Diri</h2>
+        <h2>Langkah 1: Pengesahan Diri & Penilaian</h2>
         <div class="input-group"><label for="groupNo">Nama / No Kumpulan:</label><input type="text" id="groupNo" placeholder="Contoh: Alpha atau 1" required></div>
         <div class="input-group"><label for="icNo">No. Kad Pengenalan Anda:</label><input type="text" id="icNo" placeholder="Contoh: 990101101234 (tanpa sengkang)" required></div>
-        <button id="loadBtn" onclick="loadMembers()">Sahkan Diri</button>
+        <button id="loadBtn" onclick="loadMembers()">Sahkan Diri & Mula Menilai</button>
     </div>
     
     <div id="memberList" class="section">
@@ -107,13 +114,13 @@
             <h4>Analisis & Eksport</h4>
             <button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button>
             <hr>
-            <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed()">Semak Pelajar Belum Membuat Penilaian</button>
+            <button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult')">Semak Pelajar Belum Membuat Penilaian</button>
             <div id="unassessedResult" style="margin-top: 15px;"></div>
         </div>
     </div>
 
     <footer>
-        @Haniff Faizal Unit Kokurikulum IPG Kampus Darulaman 2025
+        @Haniff Faizal UKOIPGKDA 2025
     </footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -374,10 +381,11 @@
             } catch (err) { alert("Gagal memuat turun laporan."); } 
             finally { exportBtn.disabled = false; exportBtn.textContent = 'Muat Turun Laporan Penuh (Excel)'; }
         }
-        async function checkStudentsWhoHaventAssessed() {
-            const checkBtn = document.getElementById('checkBtn');
-            checkBtn.disabled = true; checkBtn.textContent = 'Menyemak...';
-            const resultDiv = document.getElementById('unassessedResult');
+        async function checkStudentsWhoHaventAssessed(resultDivId) {
+             const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Menyemak...';
+            const resultDiv = document.getElementById(resultDivId);
             resultDiv.innerHTML = '<i>Memuat turun data...</i>';
             try {
                 const studentsSnapshot = await db.collection('pelajar').get();
@@ -399,7 +407,14 @@
                     resultDiv.innerHTML = html;
                 }
             } catch (err) { console.error("Ralat: ", err); alert("Gagal mendapatkan senarai."); resultDiv.innerHTML = '<p>Gagal mendapatkan senarai.</p>'; } 
-            finally { checkBtn.disabled = false; checkBtn.textContent = 'Semak Pelajar Belum Membuat Penilaian'; }
+            finally { 
+                button.disabled = false; 
+                if(resultDivId === 'publicUnassessedResult') {
+                    button.textContent = 'Papar Senarai Terkini';
+                } else {
+                    button.textContent = 'Semak Pelajar Belum Membuat Penilaian';
+                }
+            }
         }
     </script>
 </body>
