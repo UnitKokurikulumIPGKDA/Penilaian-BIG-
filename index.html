@@ -57,9 +57,9 @@
     </div>
 
     <div class="section">
-        <h2>Status Penilaian Awam</h2>
+        <h2>Status Penilaian </h2>
         <p class="blinking-text">Lihat senarai pelajar yang masih belum menghantar borang penilaian.</p>
-        <button class="report-btn" onclick="checkStudentsWhoHaventAssessed('publicUnassessedResult', this)">Papar Senarai Terkini</button>
+        <button class="report-btn" onclick="checkStudentsWhoHaventAssessed('publicUnassessedResult', this, 'public')">Papar Senarai Terkini</button>
         <div id="publicUnassessedResult" style="margin-top: 15px;"></div>
     </div>
     
@@ -135,45 +135,8 @@
         let myRadarChart = null;
         const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#27ae60'];
 
-        async function populateGroupDropdownForLogin() {
-            try {
-                const snapshot = await db.collection('pelajar').get();
-                const groups = new Set();
-                snapshot.forEach(doc => groups.add(doc.data().kumpulan));
-                const select = document.getElementById('groupSelect');
-                select.innerHTML = '<option value="">-- Sila Pilih Kumpulan --</option>';
-                Array.from(groups).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(group => { 
-                    select.innerHTML += `<option value="${group}">${group}</option>`; 
-                });
-            } catch (err) {
-                console.error("Gagal memuatkan senarai kumpulan: ", err);
-                document.getElementById('groupSelect').innerHTML = '<option value="">Gagal memuatkan senarai</option>';
-            }
-        }
-
-        async function showAdminSection() {
-            const password = prompt("Sila masukkan kata laluan Admin:");
-            if (password === ADMIN_PASSWORD) {
-                const adminSection = document.getElementById('adminSection');
-                adminSection.style.display = 'block';
-                adminSection.innerHTML = `
-                    <hr><h4>Laporan Rumusan Kumpulan</h4><div class="input-group"><label for="adminGroupSelect">Pilih Kumpulan:</label><select id="adminGroupSelect"></select></div><button id="generateReportBtn" class="report-btn" onclick="generateAdminReport()">Jana Laporan</button><div id="adminReportContainer" class="table-responsive" style="margin-top: 20px;"></div>
-                    <div id="radarChartSection"><hr style="margin-top: 30px;"><h4>Visualisasi Markah Pelajar</h4><div class="chart-container"><div class="chart-controls"><div class="input-group"><label for="studentChartSelect">Pilih Pelajar:</label><select id="studentChartSelect" onchange="generateRadarChart()"></select></div></div><div class="chart-canvas-wrapper"><canvas id="myRadarChart"></canvas></div></div></div>
-                    <hr style="margin-top: 30px;"><h4>Pengurusan Data</h4><div class="input-group"><label for="uploadExcel">Muat Naik Senarai Pelajar:</label><p style="font-size: 0.9em; color: #6c757d;">Sistem akan **mengemas kini/menambah** pelajar. Pastikan lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong> (sebagai ID unik) wujud.</p><input type="file" id="uploadExcel" accept=".xlsx, .xls"></div><button id="processBtn" class="upload" onclick="processExcel()">Muat Naik Senarai</button>
-                    <hr style="margin-top: 30px;"><h4>Analisis & Eksport</h4><button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button><hr><button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult', this)">Semak Pelajar Belum Membuat Penilaian</button><div id="unassessedResult" style="margin-top: 15px;"></div>`;
-                try {
-                    const snapshot = await db.collection('pelajar').get();
-                    const groups = new Set();
-                    snapshot.forEach(doc => groups.add(doc.data().kumpulan));
-                    const select = document.getElementById('adminGroupSelect');
-                    select.innerHTML = '<option value="">Pilih Kumpulan</option>';
-                    Array.from(groups).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(group => { 
-                        select.innerHTML += `<option value="${group}">${group}</option>`; 
-                    });
-                } catch (err) { console.error("Error populating groups: ", err); }
-            } else if (password !== null) { alert('Kata laluan salah. Akses ditolak.'); }
-        }
-
+        async function populateGroupDropdownForLogin() { /* ... Function is complete and correct ... */ }
+        async function showAdminSection() { /* ... Function is complete and correct ... */ }
         async function generateAdminReport() { /* ... Function is complete and correct ... */ }
         function generateRadarChart() { /* ... Function is complete and correct ... */ }
         async function loadMembers() { /* ... Function is complete and correct ... */ }
@@ -182,53 +145,80 @@
         function handleFinalSubmit() { /* ... Function is complete and correct ... */ }
         function processExcel() { /* ... Function is complete and correct ... */ }
         async function exportScoresToExcel() { /* ... Function is complete and correct ... */ }
-        async function checkStudentsWhoHaventAssessed(resultDivId, buttonElement) { /* ... Function is complete and correct ... */ }
+        
+        async function checkStudentsWhoHaventAssessed(resultDivId, buttonElement, displayMode = 'admin') {
+            const button = buttonElement;
+            button.disabled = true;
+            button.textContent = 'Menyemak...';
+            const resultDiv = document.getElementById(resultDivId);
+            resultDiv.innerHTML = '<i>Memuat turun data...</i>';
+            try {
+                const studentsSnapshot = await db.collection('pelajar').get();
+                const allStudents = new Map();
+                studentsSnapshot.forEach(doc => { const data = doc.data(); allStudents.set(data.kp.toString(), data.nama); });
+                const assessmentsSnapshot = await db.collection('penilaian').get();
+                const assessors = new Set();
+                assessmentsSnapshot.forEach(doc => { assessors.add(doc.data().penilai_kp.toString()); });
+                const studentsWhoHaveAssessed = [];
+                const studentsWhoHaventAssessed = [];
+                for (const [kp, name] of allStudents.entries()) {
+                    if (assessors.has(kp)) {
+                        studentsWhoHaveAssessed.push(name);
+                    } else {
+                        studentsWhoHaventAssessed.push(name);
+                    }
+                }
+                studentsWhoHaveAssessed.sort();
+                studentsWhoHaventAssessed.sort();
+                
+                let html = '';
+                if (displayMode === 'public') {
+                    if (studentsWhoHaventAssessed.length === 0) {
+                        html = '<p><strong>Tahniah! Semua pelajar telah membuat penilaian.</strong></p>';
+                    } else {
+                        html = `
+                            <div>
+                                <h4>Senarai Pelajar Belum Membuat Penilaian (${studentsWhoHaventAssessed.length} orang)</h4>
+                                <ul style="list-style-type: decimal; padding-left: 20px;">
+                                    ${studentsWhoHaventAssessed.map(name => `<li>${name}</li>`).join('')}
+                                </ul>
+                            </div>`;
+                    }
+                } else { // admin mode
+                    html = `
+                        <div>
+                            <h4>Telah Membuat Penilaian (${studentsWhoHaveAssessed.length} orang)</h4>
+                            ${studentsWhoHaveAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaveAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tiada pelajar.</p>'}
+                        </div>
+                        <hr style="margin: 20px 0;">
+                        <div>
+                            <h4>Belum Membuat Penilaian (${studentsWhoHaventAssessed.length} orang)</h4>
+                            ${studentsWhoHaventAssessed.length > 0 ? `<ul style="list-style-type: decimal; padding-left: 20px;">${studentsWhoHaventAssessed.map(name => `<li>${name}</li>`).join('')}</ul>` : '<p>Tahniah! Semua pelajar telah membuat penilaian.</p>'}
+                        </div>
+                    `;
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                console.error("Ralat menyemak pelajar: ", err);
+                alert("Gagal mendapatkan senarai pelajar.");
+                resultDiv.innerHTML = '<p>Gagal mendapatkan senarai pelajar.</p>';
+            } finally {
+                button.disabled = false;
+                if (resultDivId === 'publicUnassessedResult') {
+                    button.textContent = 'Papar Senarai Terkini';
+                } else {
+                    button.textContent = 'Semak Pelajar Belum Membuat Penilaian';
+                }
+            }
+        }
     </script>
     
     <!-- Full JS for other functions -->
     <script>
-        async function generateAdminReport() {
-            const groupNo = document.getElementById('adminGroupSelect').value;
-            if (!groupNo) { alert('Sila pilih kumpulan.'); return; }
-            const reportBtn = document.getElementById('generateReportBtn');
-            const container = document.getElementById('adminReportContainer');
-            const chartSection = document.getElementById('radarChartSection');
-            reportBtn.disabled = true; reportBtn.textContent = 'Menjana...'; container.innerHTML = 'Memuatkan data...';
-            chartSection.style.display = 'none';
-            if (myRadarChart) myRadarChart.destroy();
-            try {
-                const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get();
-                if (assessmentsSnapshot.empty) { container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>'; reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; return; }
-                const studentData = {};
-                assessmentsSnapshot.forEach(doc => {
-                    const data = doc.data(); const studentName = data.nama_dinilai;
-                    if (!studentData[studentName]) { studentData[studentName] = { komunikasi: [], interpersonal: [], praktikal: [], autonomi: [], kepimpinan: [] }; }
-                    Object.keys(data.skor).forEach(key => { studentData[studentName][key].push(data.skor[key]); });
-                });
-                reportData = {};
-                let tableHTML = `<table id="adminReportTable"><thead><tr><th>Nama Pelajar</th><th>Purata Komunikasi</th><th>Purata Interpersonal</th><th>Purata Praktikal</th><th>Purata Autonomi</th><th>Purata Kepimpinan</th><th>Jumlah Markah (%)</th><th>Tahap</th></tr></thead><tbody>`;
-                for (const name in studentData) {
-                    const avgScores = {}; let totalScore = 0;
-                    const weights = {komunikasi: 0.30, interpersonal: 0.30, praktikal: 0.15, autonomi: 0.15, kepimpinan: 0.10};
-                    for (const skill in studentData[name]) {
-                        const scores = studentData[name][skill];
-                        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                        avgScores[skill] = avg.toFixed(2);
-                        totalScore += (avg / 5) * (weights[skill] * 100);
-                    }
-                    reportData[name] = avgScores;
-                    let level = '', color = '';
-                    if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } else if (totalScore < 65) { level = 'Kepujian'; color = colors[2]; } else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } else { level = 'Amat Cemerlang'; color = colors[4]; }
-                    tableHTML += `<tr><td>${name}</td><td>${avgScores.komunikasi}</td><td>${avgScores.interpersonal}</td><td>${avgScores.praktikal}</td><td>${avgScores.autonomi}</td><td>${avgScores.kepimpinan}</td><td><strong>${totalScore.toFixed(2)}%</strong></td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td></tr>`;
-                }
-                tableHTML += '</tbody></table>'; container.innerHTML = tableHTML;
-                const studentSelect = document.getElementById('studentChartSelect');
-                studentSelect.innerHTML = '<option value="">Pilih Pelajar</option>';
-                Object.keys(reportData).sort().forEach(name => { studentSelect.innerHTML += `<option value="${name}">${name}</option>`; });
-                chartSection.style.display = 'block';
-            } catch (error) { console.error("Error generating report: ", error); container.innerHTML = '<p>Gagal menjana laporan.</p>'; } 
-            finally { reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; }
-        }
+        async function populateGroupDropdownForLogin() { try { const snapshot = await db.collection('pelajar').get(); const groups = new Set(); snapshot.forEach(doc => groups.add(doc.data().kumpulan)); const select = document.getElementById('groupSelect'); select.innerHTML = '<option value="">-- Sila Pilih Kumpulan --</option>'; Array.from(groups).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(group => { select.innerHTML += `<option value="${group}">${group}</option>`; }); } catch (err) { console.error("Gagal memuatkan senarai kumpulan: ", err); document.getElementById('groupSelect').innerHTML = '<option value="">Gagal memuatkan senarai</option>'; } }
+        async function showAdminSection() { const password = prompt("Sila masukkan kata laluan Admin:"); if (password === ADMIN_PASSWORD) { const adminSection = document.getElementById('adminSection'); adminSection.style.display = 'block'; adminSection.innerHTML = `<hr><h4>Laporan Rumusan Kumpulan</h4><div class="input-group"><label for="adminGroupSelect">Pilih Kumpulan:</label><select id="adminGroupSelect"></select></div><button id="generateReportBtn" class="report-btn" onclick="generateAdminReport()">Jana Laporan</button><div id="adminReportContainer" class="table-responsive" style="margin-top: 20px;"></div><div id="radarChartSection"><hr style="margin-top: 30px;"><h4>Visualisasi Markah Pelajar</h4><div class="chart-container"><div class="chart-controls"><div class="input-group"><label for="studentChartSelect">Pilih Pelajar:</label><select id="studentChartSelect" onchange="generateRadarChart()"></select></div></div><div class="chart-canvas-wrapper"><canvas id="myRadarChart"></canvas></div></div></div><hr style="margin-top: 30px;"><h4>Pengurusan Data</h4><div class="input-group"><label for="uploadExcel">Muat Naik Senarai Pelajar:</label><p style="font-size: 0.9em; color: #6c757d;">Sistem akan **mengemas kini/menambah** pelajar. Pastikan lajur <strong>"Nama Pelajar"</strong>, <strong>"Kumpulan"</strong>, dan <strong>"No. KP"</strong> (sebagai ID unik) wujud.</p><input type="file" id="uploadExcel" accept=".xlsx, .xls"></div><button id="processBtn" class="upload" onclick="processExcel()">Muat Naik Senarai</button><hr style="margin-top: 30px;"><h4>Analisis & Eksport</h4><button id="exportBtn" onclick="exportScoresToExcel()">Muat Turun Laporan Penuh (Excel)</button><hr><button id="checkBtn" onclick="checkStudentsWhoHaventAssessed('unassessedResult', this)">Semak Pelajar Belum Membuat Penilaian</button><div id="unassessedResult" style="margin-top: 15px;"></div>`; try { const snapshot = await db.collection('pelajar').get(); const groups = new Set(); snapshot.forEach(doc => groups.add(doc.data().kumpulan)); const select = document.getElementById('adminGroupSelect'); select.innerHTML = '<option value="">Pilih Kumpulan</option>'; Array.from(groups).sort((a, b) => a.localeCompare(b, undefined, {numeric: true})).forEach(group => { select.innerHTML += `<option value="${group}">${group}</option>`; }); } catch (err) { console.error("Error populating groups: ", err); } } else if (password !== null) { alert('Kata laluan salah. Akses ditolak.'); } }
+        async function generateAdminReport() { const groupNo = document.getElementById('adminGroupSelect').value; if (!groupNo) { alert('Sila pilih kumpulan.'); return; } const reportBtn = document.getElementById('generateReportBtn'); const container = document.getElementById('adminReportContainer'); const chartSection = document.getElementById('radarChartSection'); reportBtn.disabled = true; reportBtn.textContent = 'Menjana...'; container.innerHTML = 'Memuatkan data...'; chartSection.style.display = 'none'; if (myRadarChart) myRadarChart.destroy(); try { const assessmentsSnapshot = await db.collection('penilaian').where('kumpulan', '==', groupNo).get(); if (assessmentsSnapshot.empty) { container.innerHTML = '<p>Tiada data penilaian ditemui untuk kumpulan ini.</p>'; reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; return; } const studentData = {}; assessmentsSnapshot.forEach(doc => { const data = doc.data(); const studentName = data.nama_dinilai; if (!studentData[studentName]) { studentData[studentName] = { komunikasi: [], interpersonal: [], praktikal: [], autonomi: [], kepimpinan: [] }; } Object.keys(data.skor).forEach(key => { studentData[studentName][key].push(data.skor[key]); }); }); reportData = {}; let tableHTML = `<table id="adminReportTable"><thead><tr><th>Nama Pelajar</th><th>Purata Komunikasi</th><th>Purata Interpersonal</th><th>Purata Praktikal</th><th>Purata Autonomi</th><th>Purata Kepimpinan</th><th>Jumlah Markah (%)</th><th>Tahap</th></tr></thead><tbody>`; for (const name in studentData) { const avgScores = {}; let totalScore = 0; const weights = {komunikasi: 0.30, interpersonal: 0.30, praktikal: 0.15, autonomi: 0.15, kepimpinan: 0.10}; for (const skill in studentData[name]) { const scores = studentData[name][skill]; const avg = scores.reduce((a, b) => a + b, 0) / scores.length; avgScores[skill] = avg.toFixed(2); totalScore += (avg / 5) * (weights[skill] * 100); } reportData[name] = avgScores; let level = '', color = ''; if (totalScore < 40) { level = 'Lemah'; color = colors[0]; } else if (totalScore < 50) { level = 'Sederhana'; color = colors[1]; } else if (totalScore < 65) { level = 'Kepujian'; color = colors[2]; } else if (totalScore < 80) { level = 'Cemerlang'; color = colors[3]; } else { level = 'Amat Cemerlang'; color = colors[4]; } tableHTML += `<tr><td>${name}</td><td>${avgScores.komunikasi}</td><td>${avgScores.interpersonal}</td><td>${avgScores.praktikal}</td><td>${avgScores.autonomi}</td><td>${avgScores.kepimpinan}</td><td><strong>${totalScore.toFixed(2)}%</strong></td><td style="background-color:${color}; color:${totalScore < 65 ? 'black' : 'white'};">${level}</td></tr>`; } tableHTML += '</tbody></table>'; container.innerHTML = tableHTML; const studentSelect = document.getElementById('studentChartSelect'); studentSelect.innerHTML = '<option value="">Pilih Pelajar</option>'; Object.keys(reportData).sort().forEach(name => { studentSelect.innerHTML += `<option value="${name}">${name}</option>`; }); chartSection.style.display = 'block'; } catch (error) { console.error("Error generating report: ", error); container.innerHTML = '<p>Gagal menjana laporan.</p>'; } finally { reportBtn.disabled = false; reportBtn.textContent = 'Jana Laporan Rumusan'; } }
         function generateRadarChart() { const studentName = document.getElementById('studentChartSelect').value; const chartCanvas = document.getElementById('myRadarChart'); if (myRadarChart) myRadarChart.destroy(); if (!studentName) return; const studentScores = reportData[studentName]; if (!studentScores) return; const labels = ['Komunikasi', 'Interpersonal', 'Praktikal', 'Autonomi', 'Kepimpinan']; const data = labels.map(label => studentScores[label.toLowerCase().split(' ')[0]]); myRadarChart = new Chart(chartCanvas, { type: 'radar', data: { labels: labels, datasets: [{ label: `Purata Markah untuk ${studentName}`, data: data, fill: true, backgroundColor: 'rgba(0, 123, 255, 0.2)', borderColor: 'rgba(0, 123, 255, 1)', pointBackgroundColor: 'rgba(0, 123, 255, 1)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgba(0, 123, 255, 1)' }] }, options: { scales: { r: { angleLines: { display: true }, suggestedMin: 0, suggestedMax: 5, ticks: { stepSize: 1 } } }, elements: { line: { borderWidth: 3 } } } }); }
         async function loadMembers() { const groupNo = document.getElementById('groupSelect').value; if (!groupNo) { alert('Sila pilih kumpulan anda.'); return; } const icNo = document.getElementById('icNo').value.trim().replace(/-/g, ''); if (!icNo) { alert('Sila masukkan No. Kad Pengenalan anda.'); return; } const loadBtn = document.getElementById('loadBtn'); loadBtn.disabled = true; loadBtn.textContent = 'Mengesahkan...'; try { const securityCheckQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).where('kp', '==', icNo).get(); if (securityCheckQuery.empty) { alert('Pengesahan gagal. No. KP anda tidak ditemui dalam kumpulan ini.'); throw new Error("Security check failed"); } const userDoc = securityCheckQuery.docs[0]; currentUserData = { id: userDoc.id, ...userDoc.data() }; loadBtn.textContent = 'Menyemak Rekod...'; const submissionCheckQuery = await db.collection('penilaian').where('kumpulan', '==', groupNo).where('penilai_kp', '==', icNo).get(); const hasSubmitted = !submissionCheckQuery.empty; const membersQuery = await db.collection('pelajar').where('kumpulan', '==', groupNo).get(); let allMemberNames = new Set(); membersQuery.forEach(doc => allMemberNames.add(doc.data().nama)); const sortedAllMembers = Array.from(allMemberNames).sort(); const memberListSection = document.getElementById('memberList'); memberListSection.innerHTML = `<h2 id="assessmentHeader">Borang Penilaian Kumpulan ${groupNo}</h2><div id="submissionStatus" style="display:none;"></div><h3>Senarai Ahli Kumpulan Anda</h3><ul id="members">${sortedAllMembers.map(m => `<li>${m}</li>`).join('')}</ul><form id="assessmentForm"></form>`; currentMembers = sortedAllMembers.filter(member => member !== currentUserData.nama); const form = document.getElementById('assessmentForm'); const skills = [ { id: 'komunikasi', name: 'Kemahiran Komunikasi' }, { id: 'interpersonal', name: 'Kemahiran Interpersonal' }, { id: 'praktikal', name: 'Kemahiran Praktikal' }, { id: 'autonomi', name: 'Autonomi dan Tanggungjawab' }, { id: 'kepimpinan', name: 'Kepimpinan' } ]; const rubricDetails = { komunikasi: '<ul><li><strong>1 (Lemah):</strong> Tidak berkomunikasi atau sukar difahami.</li><li><strong>2 (Sederhana):</strong> Menyampaikan idea asas tetapi kurang jelas.</li><li><strong>3 (Kepujian):</strong> Berkomunikasi dengan jelas & mengambil bahagian.</li><li><strong>4 (Cemerlang):</strong> Berkomunikasi dengan sangat jelas, efektif, & meyakinkan.</li><li><strong>5 (Amat Cemerlang):</strong> Komunikasi luar biasa, mendengar aktif & memimpin perbincangan.</li></ul>', interpersonal: '<ul><li><strong>1 (Lemah):</strong> Tidak membina hubungan atau menimbulkan konflik.</li><li><strong>2 (Sederhana):</strong> Interaksi minimum dan tidak konsisten.</li><li><strong>3 (Kepujian):</strong> Bekerjasama dengan baik & menghormati pandangan lain.</li><li><strong>4 (Cemerlang):</strong> Membina hubungan kukuh & memberi galakan.</li><li><strong>5 (Amat Cemerlang):</strong> Hubungan sangat kukuh, menjadi pengantara & menjaga keharmonian.</li></ul>', praktikal: '<ul><li><strong>1 (Lemah):</strong> Tidak melaksanakan tugas atau hasil sangat lemah.</li><li><strong>2 (Sederhana):</strong> Melaksanakan tugas asas dengan banyak bimbingan.</li><li><strong>3 (Kepujian):</strong> Melaksanakan tugas dengan baik mengikut arahan.</li><li><strong>4-Cemerlang):</strong> Melaksanakan tugas dengan cekap, teliti & pengawasan minimum.</li><li><strong>5 (Amat Cemerlang):</strong> Melaksanakan tugas dengan inovatif & kemahiran teknikal tinggi.</li></ul>', autonomi: '<ul><li><strong>1 (Lemah):</strong> Sangat bergantung & mengelak tanggungjawab.</li><li><strong>2 (Sederhana):</strong> Sedikit autonomi & perlu peringatan.</li><li><strong>3 (Kepujian):</strong> Bertanggungjawab & selesaikan tugas ikut tempoh.</li><li><strong>4 (Cemerlang):</strong> Autonomi tinggi, proaktif & boleh dipercayai.</li><li><strong>5 (Amat Cemerlang):</strong> Kepimpinan autonomi, ambil inisiatif & bertanggungjawab sepenuhnya.</li></ul>', kepimpinan: '<ul><li><strong>1 (Lemah):</strong> Tidak menunjukkan ciri kepimpinan & pasif.</li><li><strong>2 (Sederhana):</strong> Kepimpinan minimum, hanya apabila diminta.</li><li><strong>3 (Kepujian):</strong> Boleh memimpin tugas kecil & beri arahan jelas.</li><li><strong>4 (Cemerlang):</strong> Memimpin dengan efektif, agih tugas adil & beri motivasi.</li><li><strong>5 (Amat Cemerlang):</strong> Sumber inspirasi, memimpin dengan teladan & menyelesaikan konflik.</li></ul>' }; skills.forEach(skill => { const tableRows = currentMembers.map(member => `<tr><td>${member}</td><td><select><option value="">Pilih</option>${[1,2,3,4,5].map(v => `<option value="${v}">${v}</option>`).join('')}</select></td></tr>`).join(''); form.innerHTML += `<div class="section"><h2>${skill.name}</h2><div class="rubric-details"><p><strong>Kriteria Penilaian:</strong></p>${rubricDetails[skill.id]}</div><div class="table-responsive"><table><thead><tr><th>Nama Ahli</th><th>Markah (1-5)</th></tr></thead><tbody id="table-${skill.id}">${tableRows}</tbody></table></div></div>`; }); form.innerHTML += `<button type="submit">Hantar & Simpan Penilaian</button>`; form.addEventListener('submit', handleFormSubmit); memberListSection.style.display = 'block'; if (hasSubmitted) { const statusDiv = document.getElementById('submissionStatus'); statusDiv.textContent = 'Anda telah pun menghantar penilaian untuk kumpulan ini.'; statusDiv.style.display = 'block'; form.querySelectorAll('select, button').forEach(el => el.disabled = true); } } catch (error) { console.error("Ralat: ", error); } finally { loadBtn.disabled = false; loadBtn.textContent = 'Sahkan Diri'; } }
         function handleFormSubmit(e) { e.preventDefault(); let allFilled = true; currentMembers.forEach((member, index) => { const tableIds = ['table-komunikasi', 'table-interpersonal', 'table-praktikal', 'table-autonomi', 'table-kepimpinan']; for(const tableId of tableIds) { const selectValue = document.querySelector(`#${tableId} tr:nth-child(${index + 1}) select`).value; if (selectValue === "") { allFilled = false; break; } } }); if (!allFilled) { alert('Sila lengkapkan semua markah untuk semua ahli sebelum menghantar.'); return; } document.getElementById('confirmationModal').classList.add('visible'); }
